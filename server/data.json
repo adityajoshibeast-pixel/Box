@@ -1,0 +1,57 @@
+{
+  "sections": [
+    {
+      "id": "rj1ks592VcbOIxZJLTxNX",
+      "title": "Class6",
+      "order": 0
+    }
+  ],
+  "subsections": [
+    {
+      "id": "EDIBd3VcHnsRlzAaZn7A3",
+      "section_id": "rj1ks592VcbOIxZJLTxNX",
+      "title": "Main Chapter PDFs",
+      "order": 0
+    },
+    {
+      "id": "qmZGjhhVok58jSrJTtaFT",
+      "section_id": "rj1ks592VcbOIxZJLTxNX",
+      "title": "Extra Questions for each chapter",
+      "order": 1
+    },
+    {
+      "id": "qo7jW15AryW1WoP6N9w0E",
+      "section_id": "rj1ks592VcbOIxZJLTxNX",
+      "title": "Source editing link",
+      "order": 2
+    }
+  ],
+  "items": [
+    {
+      "id": "UZ77GywpaKqnoeZIvDE3-",
+      "subsection_id": "EDIBd3VcHnsRlzAaZn7A3",
+      "order": 0,
+      "title": "Chapter 8",
+      "type": "pdf",
+      "filename": "PwYBUQ-Uf-d44FSHiqsLw.pdf",
+      "original_name": "gecu108.pdf"
+    },
+    {
+      "id": "PmwuylsdHBZqFKDlSO_V5",
+      "subsection_id": "qmZGjhhVok58jSrJTtaFT",
+      "order": 0,
+      "title": "Chapter 1 Extras",
+      "type": "pdf",
+      "filename": "G4OR9IC-Eg7XVjeqavPhc.pdf",
+      "original_name": "chapter 7.pdf"
+    },
+    {
+      "id": "wd8vqRi4oZi9oyUxHRqDg",
+      "subsection_id": "qo7jW15AryW1WoP6N9w0E",
+      "order": 0,
+      "title": "Chapter 1 source link",
+      "type": "link",
+      "url": "https://www.canva.com"
+    }
+  ]
+}
