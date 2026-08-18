@@ -1,6 +1,7 @@
-const dns = require("dns");
 const { MongoClient } = require("mongodb");
 const { nanoid } = require("nanoid");
+
+let clientPromise = null;
 
 // Some Windows setups fail to resolve MongoDB Atlas's SRV DNS records even
 // after the OS-level DNS is changed, because Node keeps using its own
@@ -8,13 +9,9 @@ const { nanoid } = require("nanoid");
 // Only override DNS locally (some Windows setups fail to resolve Atlas's
 // SRV records). Vercel's own network already resolves this correctly, and
 // forcing an external DNS server there can make connections hang.
-if (!process.env.VERCEL) {
-  dns.setServers(["8.8.8.8", "8.8.4.4"]);
-}
 
 // Reuse one connection across warm serverless invocations instead of
 // reconnecting on every request.
-let clientPromise = null;
 
 function getClient() {
   if (!clientPromise) {
