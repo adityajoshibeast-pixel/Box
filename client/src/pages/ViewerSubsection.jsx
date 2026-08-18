@@ -10,13 +10,28 @@ export default function ViewerSubsection() {
   const navigate = useNavigate();
   const [items, setItems] = useState(null);
   const [subTitle, setSubTitle] = useState("");
+  const [error, setError] = useState(null);
+
+  const fetchItems = () => {
+    setItems(null);
+    setError(null);
+    api.getItems(subsectionId)
+      .then((data) => setItems(data || []))
+      .catch((err) => {
+        console.error("Failed to load items:", err);
+        setError(err.message || "Items load nahi ho paaye.");
+      });
+
+    api.getSubsections(sectionId)
+      .then((all) => {
+        const found = all?.find((s) => s.id === subsectionId);
+        if (found) setSubTitle(found.title);
+      })
+      .catch((err) => console.error("Failed to load subsection title:", err));
+  };
 
   useEffect(() => {
-    api.getItems(subsectionId).then(setItems);
-    api.getSubsections(sectionId).then((all) => {
-      const found = all.find((s) => s.id === subsectionId);
-      if (found) setSubTitle(found.title);
-    });
+    fetchItems();
   }, [sectionId, subsectionId]);
 
   const openItem = (item) => {
@@ -31,7 +46,14 @@ export default function ViewerSubsection() {
     <div className="page">
       <TopBar title={subTitle || "Items"} backTo={`/s/${sectionId}`} />
       <div className="button-grid">
-        {items === null ? (
+        {error ? (
+          <div className="hint error-box" style={{ color: "#ff6b6b", textAlign: "center", width: "100%", gridColumn: "1 / -1" }}>
+            <p>⚠️ Error: {error}</p>
+            <button className="btn btn-primary" onClick={fetchItems} style={{ marginTop: "10px" }}>
+              Retry
+            </button>
+          </div>
+        ) : items === null ? (
           <p className="hint">Loading…</p>
         ) : items.length === 0 ? (
           <p className="hint">Yahan abhi kuch nahi hai.</p>

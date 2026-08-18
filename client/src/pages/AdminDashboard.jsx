@@ -11,20 +11,30 @@ export default function AdminDashboard() {
   const [openSubsection, setOpenSubsection] = useState(null);
 
   const loadSections = useCallback(async () => {
-    setSections(await api.getSections());
+    try {
+      const data = await api.getSections();
+      setSections(data || []);
+    } catch (err) {
+      console.error("Failed to load sections in admin:", err);
+    }
   }, []);
 
   useEffect(() => {
-    api.checkAuth().then((r) => {
-      if (!r.authed) navigate("/admin/login");
-      else {
-        setAuthed(true);
-        loadSections();
-      }
-    });
+    api.checkAuth()
+      .then((r) => {
+        if (!r?.authed) navigate("/admin/login");
+        else {
+          setAuthed(true);
+          loadSections();
+        }
+      })
+      .catch((err) => {
+        console.error("Auth check failed:", err);
+        navigate("/admin/login");
+      });
   }, [navigate, loadSections]);
 
-  if (authed !== true) return <div className="page">Checking access…</div>;
+  if (authed !== true) return <div className="page"><p className="hint">Checking access…</p></div>;
 
   const logout = async () => {
     await api.logout();

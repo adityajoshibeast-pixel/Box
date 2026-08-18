@@ -16,13 +16,18 @@ let clientPromise = null;
 function getClient() {
   if (!clientPromise) {
     if (!process.env.MONGODB_URI) {
-      throw new Error("MONGODB_URI environment variable is not set");
+      throw new Error(
+        "MONGODB_URI is not set. Add it in Vercel > Project > Settings > Environment Variables."
+      );
     }
     const client = new MongoClient(process.env.MONGODB_URI, {
-  tls: true,
-  serverSelectionTimeoutMS: 10000,
-});
-    clientPromise = client.connect();
+      tls: true,
+      serverSelectionTimeoutMS: 10000,
+    });
+    clientPromise = client.connect().catch((err) => {
+      clientPromise = null;
+      throw err;
+    });
   }
   return clientPromise;
 }
