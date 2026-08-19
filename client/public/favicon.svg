@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#CBB7F7"/>
+      <stop offset="1" stop-color="#8A6FE8"/>
+    </linearGradient>
+    <linearGradient id="cardMint" x1="14" y1="18" x2="42" y2="46" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EBFBF5"/>
+      <stop offset="1" stop-color="#B2E9D0"/>
+    </linearGradient>
+    <linearGradient id="cardPeach" x1="26" y1="24" x2="52" y2="50" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF2EB"/>
+      <stop offset="1" stop-color="#FDC8B2"/>
+    </linearGradient>
+    <filter id="drop" x="8" y="10" width="48" height="46" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#4B2D98" flood-opacity="0.22"/>
+    </filter>
+  </defs>
+
+  <!-- Background Squircle -->
+  <rect width="64" height="64" rx="16" fill="url(#bgGrad)"/>
+  
+  <!-- Back Layer (Sky card) -->
+  <rect x="14" y="14" width="36" height="26" rx="6" fill="#E4F1FE" filter="url(#drop)"/>
+  <rect x="18" y="19" width="16" height="3" rx="1.5" fill="#8EC3F0"/>
+  <rect x="18" y="25" width="24" height="3" rx="1.5" fill="#B9DCFB"/>
+
+  <!-- Middle Layer (Peach card) -->
+  <rect x="22" y="24" width="28" height="26" rx="6" fill="url(#cardPeach)" filter="url(#drop)"/>
+  <rect x="26" y="29" width="12" height="3" rx="1.5" fill="#F3A582"/>
+  <rect x="26" y="35" width="18" height="3" rx="1.5" fill="#F8C4AD"/>
+
+  <!-- Front Layer (Mint navigation card) -->
+  <rect x="14" y="28" width="24" height="22" rx="6" fill="url(#cardMint)" filter="url(#drop)"/>
+  <!-- Navigator Pin/Dot -->
+  <circle cx="21" cy="36" r="3" fill="#3D9B72"/>
+  <circle cx="21" cy="36" r="1.5" fill="#FFFFFF"/>
+  <rect x="27" y="35" width="8" height="2.5" rx="1.25" fill="#58B88E"/>
+  <rect x="18" y="42" width="16" height="2.5" rx="1.25" fill="#7FD3B0"/>
+</svg>
