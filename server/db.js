@@ -9,6 +9,14 @@ let clientPromise = null;
 // Only override DNS locally (some Windows setups fail to resolve Atlas's
 // SRV records). Vercel's own network already resolves this correctly, and
 // forcing an external DNS server there can make connections hang.
+if (process.env.NODE_ENV !== "production") {
+  try {
+    const dns = require("dns");
+    dns.setServers(["8.8.8.8", "8.8.4.4"]);
+  } catch (err) {
+    /* ignore if not supported */
+  }
+}
 
 // Reuse one connection across warm serverless invocations instead of
 // reconnecting on every request.

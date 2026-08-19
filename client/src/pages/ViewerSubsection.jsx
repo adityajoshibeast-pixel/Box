@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../api.js";
 import TopBar from "../components/TopBar.jsx";
+import Watermark from "../components/Watermark.jsx";
 
 const TYPE_LABEL = { link: "Link", pdf: "PDF", img: "Image" };
 
@@ -10,28 +11,13 @@ export default function ViewerSubsection() {
   const navigate = useNavigate();
   const [items, setItems] = useState(null);
   const [subTitle, setSubTitle] = useState("");
-  const [error, setError] = useState(null);
-
-  const fetchItems = () => {
-    setItems(null);
-    setError(null);
-    api.getItems(subsectionId)
-      .then((data) => setItems(data || []))
-      .catch((err) => {
-        console.error("Failed to load items:", err);
-        setError(err.message || "Items load nahi ho paaye.");
-      });
-
-    api.getSubsections(sectionId)
-      .then((all) => {
-        const found = all?.find((s) => s.id === subsectionId);
-        if (found) setSubTitle(found.title);
-      })
-      .catch((err) => console.error("Failed to load subsection title:", err));
-  };
 
   useEffect(() => {
-    fetchItems();
+    api.getItems(subsectionId).then(setItems);
+    api.getSubsections(sectionId).then((all) => {
+      const found = all.find((s) => s.id === subsectionId);
+      if (found) setSubTitle(found.title);
+    });
   }, [sectionId, subsectionId]);
 
   const openItem = (item) => {
@@ -43,17 +29,10 @@ export default function ViewerSubsection() {
   };
 
   return (
-    <div className="page">
+    <div className="page viewer-shell">
       <TopBar title={subTitle || "Items"} backTo={`/s/${sectionId}`} />
       <div className="button-grid">
-        {error ? (
-          <div className="hint error-box" style={{ color: "#ff6b6b", textAlign: "center", width: "100%", gridColumn: "1 / -1" }}>
-            <p>⚠️ Error: {error}</p>
-            <button className="btn btn-primary" onClick={fetchItems} style={{ marginTop: "10px" }}>
-              Retry
-            </button>
-          </div>
-        ) : items === null ? (
+        {items === null ? (
           <p className="hint">Loading…</p>
         ) : items.length === 0 ? (
           <p className="hint">Yahan abhi kuch nahi hai.</p>
@@ -66,6 +45,7 @@ export default function ViewerSubsection() {
           ))
         )}
       </div>
+      <Watermark />
     </div>
   );
 }

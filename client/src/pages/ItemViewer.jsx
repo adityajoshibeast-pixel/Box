@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "../api.js";
 import TopBar from "../components/TopBar.jsx";
+import Watermark from "../components/Watermark.jsx";
 
 export default function ItemViewer() {
   const { itemId } = useParams();
@@ -14,23 +15,25 @@ export default function ItemViewer() {
 
   if (error) {
     return (
-      <div className="page">
+      <div className="page viewer-shell">
         <TopBar title="Not found" backTo="/" />
         <p className="hint">{error}</p>
+        <Watermark />
       </div>
     );
   }
 
   if (!item) {
     return (
-      <div className="page">
+      <div className="page viewer-shell">
         <TopBar title="Loading…" backTo="/" />
+        <Watermark />
       </div>
     );
   }
 
   return (
-    <div className="page">
+    <div className="page viewer-shell">
       <TopBar title={item.title} backTo="/" />
       <div className="viewer-toolbar">
         <a className="btn btn-primary" href={item.download_url} download>
@@ -44,6 +47,7 @@ export default function ItemViewer() {
           <img src={item.file_url} alt={item.title} />
         </div>
       )}
+      <Watermark />
     </div>
   );
 }

@@ -2,47 +2,26 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../api.js";
 import TopBar from "../components/TopBar.jsx";
+import Watermark from "../components/Watermark.jsx";
 
 export default function ViewerSection() {
   const { sectionId } = useParams();
   const [subsections, setSubsections] = useState(null);
   const [sectionTitle, setSectionTitle] = useState("");
-  const [error, setError] = useState(null);
-
-  const fetchSubsections = () => {
-    setSubsections(null);
-    setError(null);
-    api.getSubsections(sectionId)
-      .then((data) => setSubsections(data || []))
-      .catch((err) => {
-        console.error("Failed to load subsections:", err);
-        setError(err.message || "Subsections load nahi ho paaye.");
-      });
-
-    api.getSections()
-      .then((all) => {
-        const found = all?.find((s) => s.id === sectionId);
-        if (found) setSectionTitle(found.title);
-      })
-      .catch((err) => console.error("Failed to load section title:", err));
-  };
 
   useEffect(() => {
-    fetchSubsections();
+    api.getSubsections(sectionId).then(setSubsections);
+    api.getSections().then((all) => {
+      const found = all.find((s) => s.id === sectionId);
+      if (found) setSectionTitle(found.title);
+    });
   }, [sectionId]);
 
   return (
-    <div className="page">
+    <div className="page viewer-shell">
       <TopBar title={sectionTitle || "Section"} backTo="/" />
       <div className="button-grid">
-        {error ? (
-          <div className="hint error-box" style={{ color: "#ff6b6b", textAlign: "center", width: "100%", gridColumn: "1 / -1" }}>
-            <p>⚠️ Error: {error}</p>
-            <button className="btn btn-primary" onClick={fetchSubsections} style={{ marginTop: "10px" }}>
-              Retry
-            </button>
-          </div>
-        ) : subsections === null ? (
+        {subsections === null ? (
           <p className="hint">Loading…</p>
         ) : subsections.length === 0 ? (
           <p className="hint">Is section me abhi kuch nahi hai.</p>
@@ -54,6 +33,7 @@ export default function ViewerSection() {
           ))
         )}
       </div>
+      <Watermark />
     </div>
   );
 }
