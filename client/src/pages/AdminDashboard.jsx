@@ -1,7 +1,12 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { upload } from "@vercel/blob/client";
+import { uploadToCloudinary } from "../cloudinaryUpload.js";
 import { api } from "../api.js";
+
+// Files under this size go to Cloudinary, larger ones go to Vercel Blob —
+// spreads usage across both free tiers instead of maxing out one.
+const CLOUDINARY_SIZE_LIMIT = 10 * 1024 * 1024; // 10MB
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -267,20 +272,39 @@ function NewItemForm({ subsectionId, onAdded }) {
       if (type === "link") {
         await api.createItem(subsectionId, { title: title.trim(), type, url: url.trim() });
       } else {
-        // Upload straight from the browser to Vercel Blob storage — this
-        // skips the serverless function entirely, so large PDFs/images
-        // don't hit any request-size limit.
-        const blob = await upload(file.name, file, {
-          access: "public",
-          handleUploadUrl: "/api/admin/blob/token",
-        });
-        await api.createItem(subsectionId, {
-          title: title.trim(),
-          type,
-          file_url: blob.url,
-          download_url: `${blob.url}?download=1`,
-          original_name: file.name,
-        });
+        const resourceType = type === "pdf" ? "raw" : "image";
+        let fields;
+
+        if (file.size < CLOUDINARY_SIZE_LIMIT) {
+          // Small file — goes to Cloudinary, straight from the browser.
+          const result = await uploadToCloudinary(file, resourceType);
+          fields = {
+            title: title.trim(),
+            type,
+            provider: "cloudinary",
+            file_url: result.secure_url,
+            download_url: result.secure_url.replace("/upload/", "/upload/fl_attachment/"),
+            public_id: result.public_id,
+            resource_type: result.resource_type,
+            original_name: file.name,
+          };
+        } else {
+          // Large file — goes to Vercel Blob, also straight from the
+          // browser, so it skips the serverless function's body-size limit.
+          const blob = await upload(file.name, file, {
+            access: "public",
+            handleUploadUrl: "/api/admin/blob/token",
+          });
+          fields = {
+            title: title.trim(),
+            type,
+            provider: "blob",
+            file_url: blob.url,
+            download_url: `${blob.url}?download=1`,
+            original_name: file.name,
+          };
+        }
+        await api.createItem(subsectionId, fields);
       }
       setTitle("");
       setUrl("");
@@ -328,6 +352,7 @@ function ItemRow({ item, onChanged }) {
   return (
     <div className="tree-row item-row">
       <span className="item-type-tag">{item.type}</span>
+      {item.provider && <span className="item-type-tag">{item.provider}</span>}
       <span className="tree-label">{item.title}</span>
       {item.type === "link" && (
         <a className="item-meta-link" href={item.url} target="_blank" rel="noreferrer">

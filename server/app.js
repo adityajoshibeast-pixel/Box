@@ -12,6 +12,7 @@ const {
 } = require("./auth");
 
 const { deleteFile } = require("./blob");
+const { deleteCloudinaryFile } = require("./cloudinary");
 
 const app = express();
 
@@ -344,73 +345,33 @@ admin.post(
 // ITEMS
 // --------------------------------------------------
 
-admin.post(
-  "/subsections/:id/items",
-  async (req, res, next) => {
-    try {
-      const {
-        title,
-        type,
-        url,
-        file_url,
-        download_url,
-        original_name,
-      } = req.body;
+admin.post("/subsections/:id/items", async (req, res, next) => {
+  try {
+    const { title, type, url, file_url, download_url, original_name, provider, public_id, resource_type } =
+      req.body;
+    if (!title || !type) return res.status(400).json({ error: "Title and type are required" });
+    if (!["link", "pdf", "img"].includes(type)) return res.status(400).json({ error: "Invalid type" });
 
-      if (!title || !type) {
-        return res.status(400).json({
-          error: "Title and type are required",
-        });
+    const fields = { title: title.trim(), type };
+    if (type === "link") {
+      if (!url || !/^https?:\/\//i.test(url)) {
+        return res.status(400).json({ error: "A valid http(s) URL is required for a link" });
       }
-
-      if (!["link", "pdf", "img"].includes(type)) {
-        return res.status(400).json({
-          error: "Invalid type",
-        });
-      }
-
-      const fields = {
-        title: title.trim(),
-        type,
-      };
-
-      if (type === "link") {
-        if (
-          !url ||
-          !/^https?:\/\//i.test(url)
-        ) {
-          return res.status(400).json({
-            error:
-              "A valid http(s) URL is required for a link",
-          });
-        }
-
-        fields.url = url.trim();
-      } else {
-        if (!file_url) {
-          return res.status(400).json({
-            error: `${type} file is required`,
-          });
-        }
-
-        fields.file_url = file_url;
-        fields.download_url =
-          download_url || file_url;
-        fields.original_name =
-          original_name || title;
-      }
-
-      const item = await db.createItem(
-        req.params.id,
-        fields
-      );
-
-      res.status(201).json(item);
-    } catch (err) {
-      next(err);
+      fields.url = url.trim();
+    } else {
+      if (!file_url) return res.status(400).json({ error: `A ${type} file is required` });
+      fields.file_url = file_url;
+      fields.download_url = download_url || file_url;
+      fields.original_name = original_name || title;
+      fields.provider = provider || "blob"; // "blob" or "cloudinary"
+      if (public_id) fields.public_id = public_id;
+      if (resource_type) fields.resource_type = resource_type;
     }
+    res.status(201).json(await db.createItem(req.params.id, fields));
+  } catch (err) {
+    next(err);
   }
-);
+});
 
 admin.put("/items/:id", async (req, res, next) => {
   try {
@@ -449,20 +410,18 @@ admin.put("/items/:id", async (req, res, next) => {
     }
 
     if (req.body.file_url) {
-      await deleteFile(
-        existing.file_url
-      );
-
-      fields.file_url =
-        req.body.file_url;
-
-      fields.download_url =
-        req.body.download_url ||
-        req.body.file_url;
-
-      fields.original_name =
-        req.body.original_name ||
-        existing.original_name;
+      // delete the old file from wherever it actually lives
+      if (existing.provider === "cloudinary") {
+        await deleteCloudinaryFile(existing.public_id, existing.resource_type);
+      } else {
+        await deleteFile(existing.file_url);
+      }
+      fields.file_url = req.body.file_url;
+      fields.download_url = req.body.download_url || req.body.file_url;
+      fields.original_name = req.body.original_name || existing.original_name;
+      fields.provider = req.body.provider || "blob";
+      if (req.body.public_id) fields.public_id = req.body.public_id;
+      if (req.body.resource_type) fields.resource_type = req.body.resource_type;
     }
 
     const updated = await db.updateItem(
@@ -478,16 +437,14 @@ admin.put("/items/:id", async (req, res, next) => {
 
 admin.delete("/items/:id", async (req, res, next) => {
   try {
-    const row = await db.deleteItem(
-      req.params.id
-    );
-
-    if (row?.file_url) {
-      await deleteFile(
-        row.file_url
-      );
+    const row = await db.deleteItem(req.params.id);
+    if (row && row.file_url) {
+      if (row.provider === "cloudinary") {
+        await deleteCloudinaryFile(row.public_id, row.resource_type);
+      } else {
+        await deleteFile(row.file_url);
+      }
     }
-
     res.status(204).end();
   } catch (err) {
     next(err);
