@@ -13,6 +13,7 @@ const {
 
 const { deleteFile } = require("./blob");
 const { deleteCloudinaryFile } = require("./cloudinary");
+const { sendNewItemNotification } = require("./notifications");
 
 const app = express();
 
@@ -173,6 +174,55 @@ app.get("/api/items/:id", async (req, res, next) => {
     }
 
     res.json(item);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// --------------------------------------------------
+// UPDATE SUBSCRIPTIONS
+// --------------------------------------------------
+
+const subscribeAttempts = new Map();
+
+app.post("/api/subscribe", async (req, res, next) => {
+  try {
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const honeypot = String(req.body?.website || "").trim();
+    const ip = req.ip || req.socket?.remoteAddress || "unknown";
+    const now = Date.now();
+    const recentAttempts = (subscribeAttempts.get(ip) || []).filter(
+      (time) => now - time < 60 * 60 * 1000
+    );
+
+    if (honeypot) return res.status(200).json({ ok: true });
+    if (recentAttempts.length >= 10) {
+      return res.status(429).json({ error: "Too many attempts. Please try again later." });
+    }
+    subscribeAttempts.set(ip, [...recentAttempts, now]);
+
+    if (
+      email.length > 254 ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i.test(email)
+    ) {
+      return res.status(400).json({ error: "Please enter a valid email address." });
+    }
+
+    await db.subscribe(email);
+    res.status(201).json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.post("/api/unsubscribe", async (req, res, next) => {
+  try {
+    const token = String(req.body?.token || "").trim();
+    if (!token || token.length > 100) {
+      return res.status(400).json({ error: "Invalid unsubscribe link." });
+    }
+    await db.unsubscribe(token);
+    res.json({ ok: true });
   } catch (err) {
     next(err);
   }
@@ -367,7 +417,19 @@ admin.post("/subsections/:id/items", async (req, res, next) => {
       if (public_id) fields.public_id = public_id;
       if (resource_type) fields.resource_type = resource_type;
     }
-    res.status(201).json(await db.createItem(req.params.id, fields));
+    const item = await db.createItem(req.params.id, fields);
+    let notification = { sent: 0 };
+
+    try {
+      notification = await sendNewItemNotification({ db, req, item });
+    } catch (notificationError) {
+      // The resource is already safely stored, so an email-provider outage
+      // must not make the admin retry and accidentally create a duplicate.
+      console.error("Update notification failed:", notificationError);
+      notification = { sent: 0, failed: true };
+    }
+
+    res.status(201).json({ ...item, notification });
   } catch (err) {
     next(err);
   }

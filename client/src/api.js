@@ -25,6 +25,10 @@ export const api = {
   getSubsections: (sectionId) => request(`/sections/${sectionId}/subsections`),
   getItems: (subsectionId) => request(`/subsections/${subsectionId}/items`),
   getItem: (id) => request(`/items/${id}`),
+  subscribe: (email, website = "") =>
+    request("/subscribe", { method: "POST", body: JSON.stringify({ email, website }) }),
+  unsubscribe: (token) =>
+    request("/unsubscribe", { method: "POST", body: JSON.stringify({ token }) }),
 
   // admin auth
   login: (password) => request("/admin/login", { method: "POST", body: JSON.stringify({ password }) }),

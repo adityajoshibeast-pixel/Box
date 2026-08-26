@@ -259,18 +259,21 @@ function NewItemForm({ subsectionId, onAdded }) {
   const [file, setFile] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
 
   const submit = async (e) => {
     e.preventDefault();
     setError("");
+    setNotice("");
     if (!title.trim()) return setError("Title chahiye.");
     if (type === "link" && !url.trim()) return setError("URL chahiye.");
     if (type !== "link" && !file) return setError("File chuno.");
 
     setBusy(true);
     try {
+      let created;
       if (type === "link") {
-        await api.createItem(subsectionId, { title: title.trim(), type, url: url.trim() });
+        created = await api.createItem(subsectionId, { title: title.trim(), type, url: url.trim() });
       } else {
         const resourceType = type === "pdf" ? "raw" : "image";
         let fields;
@@ -304,7 +307,16 @@ function NewItemForm({ subsectionId, onAdded }) {
             original_name: file.name,
           };
         }
-        await api.createItem(subsectionId, fields);
+        created = await api.createItem(subsectionId, fields);
+      }
+      if (created?.notification?.failed) {
+        setNotice("Item add ho gaya, lekin update emails send nahi ho paaye.");
+      } else if (created?.notification?.skipped) {
+        setNotice("Item add ho gaya. Update email service abhi configure nahi hai.");
+      } else if (created?.notification?.sent > 0) {
+        setNotice(`Item add ho gaya aur ${created.notification.sent} update email send hue.`);
+      } else {
+        setNotice("Item add ho gaya. Abhi koi active subscriber nahi hai.");
       }
       setTitle("");
       setUrl("");
@@ -338,6 +350,7 @@ function NewItemForm({ subsectionId, onAdded }) {
         {busy ? "Adding…" : "Add item"}
       </button>
       {error && <span className="slip-error">{error}</span>}
+      {notice && <span className="item-notice" role="status">{notice}</span>}
     </form>
   );
 }

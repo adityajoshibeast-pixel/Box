@@ -76,6 +76,10 @@ module.exports = {
     const c = await col("sections");
     return (await c.find().toArray()).sort(byOrder).map(toPublic);
   },
+  async getSection(id) {
+    const c = await col("sections");
+    return toPublic(await c.findOne({ _id: id }));
+  },
   async createSection(title) {
     const c = await col("sections");
     const list = await c.find().toArray();
@@ -111,6 +115,10 @@ module.exports = {
   async listSubsections(sectionId) {
     const c = await col("subsections");
     return (await c.find({ section_id: sectionId }).toArray()).sort(byOrder).map(toPublic);
+  },
+  async getSubsection(id) {
+    const c = await col("subsections");
+    return toPublic(await c.findOne({ _id: id }));
   },
   async createSubsection(sectionId, title) {
     const c = await col("subsections");
@@ -175,5 +183,42 @@ module.exports = {
     if (!row) return;
     const siblings = await c.find({ subsection_id: row.subsection_id }).toArray();
     await reorder(c, siblings, id, direction);
+  },
+
+  // ---------- update subscribers ----------
+  async subscribe(email) {
+    const c = await col("subscribers");
+    await c.createIndex({ email: 1 }, { unique: true });
+    const now = new Date();
+    const result = await c.updateOne(
+      { email },
+      {
+        $set: { active: true, updated_at: now },
+        $setOnInsert: {
+          _id: nanoid(),
+          unsubscribe_token: nanoid(32),
+          created_at: now,
+        },
+      },
+      { upsert: true }
+    );
+    return { alreadySubscribed: result.upsertedCount === 0 };
+  },
+  async listActiveSubscribers() {
+    const c = await col("subscribers");
+    return c
+      .find(
+        { active: true },
+        { projection: { email: 1, unsubscribe_token: 1 } }
+      )
+      .toArray();
+  },
+  async unsubscribe(token) {
+    const c = await col("subscribers");
+    const result = await c.updateOne(
+      { unsubscribe_token: token, active: true },
+      { $set: { active: false, updated_at: new Date() } }
+    );
+    return result.modifiedCount > 0;
   },
 };
