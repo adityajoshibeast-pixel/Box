@@ -159,7 +159,9 @@ function getDownloadRecipients() {
     process.env.DOWNLOAD_NOTIFICATION_EMAIL || process.env.ZOHO_EMAIL || ""
   )
     .split(",")
-    .map((email) => email.trim())
+    // Resend's unverified-domain sandbox matches the recipient against the
+    // account email exactly, including casing.
+    .map((email) => email.trim().toLowerCase())
     .filter(Boolean);
 }
 
