@@ -36,9 +36,18 @@ export default function ItemViewer() {
     <div className="page viewer-shell">
       <TopBar title={item.title} backTo="/" />
       <div className="viewer-toolbar">
-        <a className="btn btn-primary" href={item.download_url} download>
-          Download
-        </a>
+        <form
+          className="download-form"
+          method="post"
+          action={`/api/items/${encodeURIComponent(item.id)}/download`}
+        >
+          <button className="btn btn-primary" type="submit">
+            Download
+          </button>
+        </form>
+        <span className="download-privacy-note">
+          Download activity includes approximate location and device information.
+        </span>
       </div>
       {item.type === "pdf" ? (
         <iframe className="pdf-frame" src={item.file_url} title={item.title} />

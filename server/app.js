@@ -13,7 +13,10 @@ const {
 
 const { deleteFile } = require("./blob");
 const { deleteCloudinaryFile } = require("./cloudinary");
-const { sendNewItemNotification } = require("./notifications");
+const {
+  sendNewItemNotification,
+  sendDownloadNotification,
+} = require("./notifications");
 
 const app = express();
 
@@ -174,6 +177,40 @@ app.get("/api/items/:id", async (req, res, next) => {
     }
 
     res.json(item);
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.post("/api/items/:id/download", async (req, res, next) => {
+  try {
+    const item = await db.getItem(req.params.id);
+
+    if (!item || !["pdf", "img"].includes(item.type)) {
+      return res.status(404).json({ error: "File not found" });
+    }
+
+    const target = item.download_url || item.file_url;
+    let downloadUrl;
+
+    try {
+      downloadUrl = new URL(target);
+      if (!["http:", "https:"].includes(downloadUrl.protocol)) {
+        throw new Error("Unsupported download URL");
+      }
+    } catch {
+      return res.status(404).json({ error: "Download is unavailable" });
+    }
+
+    try {
+      await sendDownloadNotification({ db, req, item });
+    } catch (notificationError) {
+      // Email-provider problems must never stop the requested download.
+      console.error("Download notification failed:", notificationError);
+    }
+
+    res.set("Cache-Control", "private, no-store");
+    return res.redirect(302, downloadUrl.toString());
   } catch (err) {
     next(err);
   }
