@@ -498,13 +498,6 @@ body {
   margin: 0;
 }
 
-.viewer-shell .download-privacy-note {
-  max-width: 520px;
-  color: var(--p-muted);
-  font-size: 12px;
-  line-height: 1.45;
-}
-
 .viewer-shell .pdf-frame,
 .viewer-shell .img-frame {
   border: none;

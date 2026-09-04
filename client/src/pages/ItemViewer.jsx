@@ -45,9 +45,6 @@ export default function ItemViewer() {
             Download
           </button>
         </form>
-        <span className="download-privacy-note">
-          Download activity includes approximate location and device information.
-        </span>
       </div>
       {item.type === "pdf" ? (
         <iframe className="pdf-frame" src={item.file_url} title={item.title} />

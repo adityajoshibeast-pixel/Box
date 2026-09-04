@@ -455,9 +455,26 @@ async function sendDownloadNotification({ db, req, item }) {
     to: recipients,
   });
 
-  // Prefer Resend for owner alerts when it is configured; Zoho remains a
-  // working fallback for existing deployments.
-  return canUseResend ? sendWithResend([message]) : sendWithZoho([message]);
+  if (canUseResend) {
+    try {
+      return await sendWithResend([message]);
+    } catch (resendError) {
+      if (!canUseZoho) throw resendError;
+
+      // Keep owner alerts reliable while a Resend sending domain is pending
+      // verification. Subscriber updates already continue to use Zoho.
+      console.error(
+        "Resend download alert failed; retrying with Zoho:",
+        resendError.message
+      );
+      message.from =
+        process.env.ZOHO_FROM || `Resource Navigator <${process.env.ZOHO_EMAIL}>`;
+      const result = await sendWithZoho([message]);
+      return { ...result, fallbackFrom: "resend" };
+    }
+  }
+
+  return sendWithZoho([message]);
 }
 
 module.exports = { sendNewItemNotification, sendDownloadNotification };
