@@ -3,9 +3,11 @@ import { useParams } from "react-router-dom";
 import { api } from "../api.js";
 import TopBar from "../components/TopBar.jsx";
 import Watermark from "../components/Watermark.jsx";
+import { useUserProfile } from "../userProfile.jsx";
 
 export default function ItemViewer() {
   const { itemId } = useParams();
+  const { username } = useUserProfile();
   const [item, setItem] = useState(null);
   const [error, setError] = useState("");
 
@@ -41,6 +43,7 @@ export default function ItemViewer() {
           method="post"
           action={`/api/items/${encodeURIComponent(item.id)}/download`}
         >
+          <input type="hidden" name="username" value={username} />
           <button className="btn btn-primary" type="submit">
             Download
           </button>

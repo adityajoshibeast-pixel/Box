@@ -49,6 +49,9 @@ const col = (name) => getDb().then((db) => db.collection(name));
 
 const byOrder = (a, b) => a.order - b.order;
 const nextOrder = (list) => (list.length ? Math.max(...list.map((x) => x.order)) + 1 : 0);
+const publicItemFilter = {
+  $or: [{ visibility: "public" }, { visibility: { $exists: false } }],
+};
 
 // Convert a Mongo doc (_id) into the shape the API/frontend expects (id).
 function toPublic(doc) {
@@ -151,13 +154,17 @@ module.exports = {
   },
 
   // ---------- items ----------
-  async listItems(subsectionId) {
+  async listItems(subsectionId, { includePrivate = false } = {}) {
     const c = await col("items");
-    return (await c.find({ subsection_id: subsectionId }).toArray()).sort(byOrder).map(toPublic);
+    const filter = includePrivate
+      ? { subsection_id: subsectionId }
+      : { subsection_id: subsectionId, ...publicItemFilter };
+    return (await c.find(filter).toArray()).sort(byOrder).map(toPublic);
   },
-  async getItem(id) {
+  async getItem(id, { includePrivate = false } = {}) {
     const c = await col("items");
-    return toPublic(await c.findOne({ _id: id }));
+    const filter = includePrivate ? { _id: id } : { _id: id, ...publicItemFilter };
+    return toPublic(await c.findOne(filter));
   },
   async createItem(subsectionId, fields) {
     const c = await col("items");
@@ -170,6 +177,74 @@ module.exports = {
     const c = await col("items");
     const res = await c.findOneAndUpdate({ _id: id }, { $set: fields }, { returnDocument: "after" });
     return toPublic(res?.value || res);
+  },
+  async setItemVisibility(id, visibility) {
+    const c = await col("items");
+    const update = {
+      $set: { visibility, visibility_updated_at: new Date() },
+      $unset: { scheduled_publish_at: "" },
+    };
+    const res = await c.findOneAndUpdate(
+      { _id: id },
+      update,
+      { returnDocument: "after" }
+    );
+    return toPublic(res?.value || res);
+  },
+  async scheduleItem(id, publishAt) {
+    const c = await col("items");
+    const update = publishAt
+      ? {
+          $set: {
+            visibility: "private",
+            scheduled_publish_at: publishAt,
+            visibility_updated_at: new Date(),
+          },
+        }
+      : {
+          $set: { visibility: "private", visibility_updated_at: new Date() },
+          $unset: { scheduled_publish_at: "" },
+        };
+    const res = await c.findOneAndUpdate(
+      { _id: id },
+      update,
+      { returnDocument: "after" }
+    );
+    return toPublic(res?.value || res);
+  },
+  async publishDueItems(now = new Date()) {
+    const c = await col("items");
+    const due = await c
+      .find({
+        visibility: "private",
+        scheduled_publish_at: { $lte: now },
+      })
+      .limit(50)
+      .toArray();
+    const published = [];
+
+    for (const item of due) {
+      const res = await c.findOneAndUpdate(
+        {
+          _id: item._id,
+          visibility: "private",
+          scheduled_publish_at: { $lte: now },
+        },
+        {
+          $set: {
+            visibility: "public",
+            scheduled_published_at: now,
+            visibility_updated_at: now,
+          },
+          $unset: { scheduled_publish_at: "" },
+        },
+        { returnDocument: "after" }
+      );
+      const updated = res?.value || res;
+      if (updated) published.push(toPublic(updated));
+    }
+
+    return published;
   },
   async deleteItem(id) {
     const c = await col("items");

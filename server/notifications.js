@@ -11,6 +11,7 @@ const TYPE_LABELS = {
 };
 
 const DOWNLOAD_HEADER_LABELS = {
+  username: "Visitor username",
   fileName: "File name",
   title: "Resource title",
   type: "File type",
@@ -243,7 +244,9 @@ function buildDownloadEmail({ item, section, subsection, req, from, to }) {
   const now = new Date();
   const location = getVisitorLocation(req);
   const device = getDeviceDetails(req);
+  const username = String(req.body?.username || "").trim().slice(0, 40);
   const details = {
+    username: username || "Not provided",
     fileName: item.original_name || item.title || "Unnamed file",
     title: item.title || "Untitled resource",
     type: TYPE_LABELS[item.type] || item.type || "File",

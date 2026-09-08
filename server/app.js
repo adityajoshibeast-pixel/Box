@@ -36,6 +36,7 @@ app.use(
 
 app.use(cookieParser());
 app.use(express.json());
+app.use(express.urlencoded({ extended: false, limit: "4kb" }));
 
 // --------------------------------------------------
 // Cookies
@@ -47,6 +48,28 @@ const cookieOpts = {
   secure: IS_PROD,
   maxAge: 7 * 24 * 60 * 60 * 1000,
 };
+
+function requestIsAdmin(req) {
+  const token = req.cookies?.[COOKIE_NAME];
+  return Boolean(token && verifyToken(token));
+}
+
+async function publishDueScheduledItems(req) {
+  const publishedItems = await db.publishDueItems(new Date());
+  const results = [];
+
+  for (const item of publishedItems) {
+    try {
+      const notification = await sendNewItemNotification({ db, req, item });
+      results.push({ itemId: item.id, notification });
+    } catch (notificationError) {
+      console.error("Scheduled publish notification failed:", notificationError);
+      results.push({ itemId: item.id, notification: { sent: 0, failed: true } });
+    }
+  }
+
+  return { published: publishedItems.length, results };
+}
 
 // --------------------------------------------------
 // HEALTH CHECK
@@ -132,8 +155,9 @@ app.post("/api/admin/blob/token", requireAdmin, async (req, res) => {
 // PUBLIC ROUTES
 // --------------------------------------------------
 
-app.get("/api/sections", async (_req, res, next) => {
+app.get("/api/sections", async (req, res, next) => {
   try {
+    await publishDueScheduledItems(req);
     const sections = await db.listSections();
 
     res.json(sections);
@@ -157,7 +181,8 @@ app.get("/api/sections/:id/subsections", async (req, res, next) => {
 app.get("/api/subsections/:id/items", async (req, res, next) => {
   try {
     const items = await db.listItems(
-      req.params.id
+      req.params.id,
+      { includePrivate: requestIsAdmin(req) }
     );
 
     res.json(items);
@@ -168,7 +193,9 @@ app.get("/api/subsections/:id/items", async (req, res, next) => {
 
 app.get("/api/items/:id", async (req, res, next) => {
   try {
-    const item = await db.getItem(req.params.id);
+    const item = await db.getItem(req.params.id, {
+      includePrivate: requestIsAdmin(req),
+    });
 
     if (!item) {
       return res.status(404).json({
@@ -184,7 +211,9 @@ app.get("/api/items/:id", async (req, res, next) => {
 
 app.post("/api/items/:id/download", async (req, res, next) => {
   try {
-    const item = await db.getItem(req.params.id);
+    const item = await db.getItem(req.params.id, {
+      includePrivate: requestIsAdmin(req),
+    });
 
     if (!item || !["pdf", "img"].includes(item.type)) {
       return res.status(404).json({ error: "File not found" });
@@ -211,6 +240,20 @@ app.post("/api/items/:id/download", async (req, res, next) => {
 
     res.set("Cache-Control", "private, no-store");
     return res.redirect(302, downloadUrl.toString());
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.get("/api/cron/publish-scheduled", async (req, res, next) => {
+  try {
+    const cronSecret = String(process.env.CRON_SECRET || "").trim();
+    if (cronSecret && req.get("authorization") !== `Bearer ${cronSecret}`) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const result = await publishDueScheduledItems(req);
+    res.json({ ok: true, ...result });
   } catch (err) {
     next(err);
   }
@@ -439,7 +482,23 @@ admin.post("/subsections/:id/items", async (req, res, next) => {
     if (!title || !type) return res.status(400).json({ error: "Title and type are required" });
     if (!["link", "pdf", "img"].includes(type)) return res.status(400).json({ error: "Invalid type" });
 
-    const fields = { title: title.trim(), type };
+    const requestedVisibility = req.body.visibility === "private" ? "private" : "public";
+    const publishAfterDays = Number(req.body.publish_after_days);
+    const hasSchedule =
+      type !== "link" &&
+      Number.isInteger(publishAfterDays) &&
+      publishAfterDays >= 1 &&
+      publishAfterDays <= 7;
+    const fields = {
+      title: title.trim(),
+      type,
+      visibility: type === "link" ? "public" : hasSchedule ? "private" : requestedVisibility,
+    };
+    if (hasSchedule) {
+      fields.scheduled_publish_at = new Date(
+        Date.now() + publishAfterDays * 24 * 60 * 60 * 1000
+      );
+    }
     if (type === "link") {
       if (!url || !/^https?:\/\//i.test(url)) {
         return res.status(400).json({ error: "A valid http(s) URL is required for a link" });
@@ -455,15 +514,17 @@ admin.post("/subsections/:id/items", async (req, res, next) => {
       if (resource_type) fields.resource_type = resource_type;
     }
     const item = await db.createItem(req.params.id, fields);
-    let notification = { sent: 0 };
+    let notification = { sent: 0, withheld: fields.visibility !== "public" };
 
-    try {
-      notification = await sendNewItemNotification({ db, req, item });
-    } catch (notificationError) {
-      // The resource is already safely stored, so an email-provider outage
-      // must not make the admin retry and accidentally create a duplicate.
-      console.error("Update notification failed:", notificationError);
-      notification = { sent: 0, failed: true };
+    if (fields.visibility === "public") {
+      try {
+        notification = await sendNewItemNotification({ db, req, item });
+      } catch (notificationError) {
+        // The resource is already safely stored, so an email-provider outage
+        // must not make the admin retry and accidentally create a duplicate.
+        console.error("Update notification failed:", notificationError);
+        notification = { sent: 0, failed: true };
+      }
     }
 
     res.status(201).json({ ...item, notification });
@@ -472,11 +533,61 @@ admin.post("/subsections/:id/items", async (req, res, next) => {
   }
 });
 
+admin.put("/items/:id/visibility", async (req, res, next) => {
+  try {
+    const existing = await db.getItem(req.params.id, { includePrivate: true });
+    if (!existing || !["pdf", "img"].includes(existing.type)) {
+      return res.status(404).json({ error: "File not found" });
+    }
+
+    const visibility = req.body?.visibility === "public" ? "public" : "private";
+    const wasPublic = existing.visibility !== "private";
+    const updated = await db.setItemVisibility(req.params.id, visibility);
+    let notification = { sent: 0 };
+
+    if (visibility === "public" && !wasPublic) {
+      try {
+        notification = await sendNewItemNotification({ db, req, item: updated });
+      } catch (notificationError) {
+        console.error("Visibility update notification failed:", notificationError);
+        notification = { sent: 0, failed: true };
+      }
+    }
+
+    res.json({ ...updated, notification });
+  } catch (err) {
+    next(err);
+  }
+});
+
+admin.put("/items/:id/schedule", async (req, res, next) => {
+  try {
+    const existing = await db.getItem(req.params.id, { includePrivate: true });
+    if (!existing || !["pdf", "img"].includes(existing.type)) {
+      return res.status(404).json({ error: "File not found" });
+    }
+
+    if (req.body?.days === null) {
+      const updated = await db.scheduleItem(req.params.id, null);
+      return res.json(updated);
+    }
+
+    const days = Number(req.body?.days);
+    if (!Number.isInteger(days) || days < 1 || days > 7) {
+      return res.status(400).json({ error: "Schedule must be between 1 and 7 days" });
+    }
+
+    const publishAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+    const updated = await db.scheduleItem(req.params.id, publishAt);
+    res.json(updated);
+  } catch (err) {
+    next(err);
+  }
+});
+
 admin.put("/items/:id", async (req, res, next) => {
   try {
-    const existing = await db.getItem(
-      req.params.id
-    );
+    const existing = await db.getItem(req.params.id, { includePrivate: true });
 
     if (!existing) {
       return res.status(404).json({

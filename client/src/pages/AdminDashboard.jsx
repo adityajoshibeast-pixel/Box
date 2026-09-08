@@ -257,6 +257,7 @@ function NewItemForm({ subsectionId, onAdded }) {
   const [type, setType] = useState("link");
   const [url, setUrl] = useState("");
   const [file, setFile] = useState(null);
+  const [publishChoice, setPublishChoice] = useState("public");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -272,6 +273,12 @@ function NewItemForm({ subsectionId, onAdded }) {
     setBusy(true);
     try {
       let created;
+      const publicationFields = publishChoice.startsWith("schedule-")
+        ? {
+            visibility: "private",
+            publish_after_days: Number(publishChoice.replace("schedule-", "")),
+          }
+        : { visibility: publishChoice };
       if (type === "link") {
         created = await api.createItem(subsectionId, { title: title.trim(), type, url: url.trim() });
       } else {
@@ -282,6 +289,7 @@ function NewItemForm({ subsectionId, onAdded }) {
           // Small file — goes to Cloudinary, straight from the browser.
           const result = await uploadToCloudinary(file, resourceType);
           fields = {
+            ...publicationFields,
             title: title.trim(),
             type,
             provider: "cloudinary",
@@ -299,6 +307,7 @@ function NewItemForm({ subsectionId, onAdded }) {
             handleUploadUrl: "/api/admin/blob/token",
           });
           fields = {
+            ...publicationFields,
             title: title.trim(),
             type,
             provider: "blob",
@@ -309,7 +318,13 @@ function NewItemForm({ subsectionId, onAdded }) {
         }
         created = await api.createItem(subsectionId, fields);
       }
-      if (created?.notification?.failed) {
+      if (created?.notification?.withheld) {
+        setNotice(
+          created.scheduled_publish_at
+            ? `Item private hai aur ${new Date(created.scheduled_publish_at).toLocaleString("en-IN")} ko public hoga.`
+            : "Item private add ho gaya. Koi update email nahi bheja gaya."
+        );
+      } else if (created?.notification?.failed) {
         setNotice("Item add ho gaya, lekin update emails send nahi ho paaye.");
       } else if (created?.notification?.skipped) {
         setNotice("Item add ho gaya. Update email service abhi configure nahi hai.");
@@ -321,6 +336,7 @@ function NewItemForm({ subsectionId, onAdded }) {
       setTitle("");
       setUrl("");
       setFile(null);
+      setPublishChoice("public");
       onAdded();
     } catch (err) {
       setError(err.message);
@@ -346,6 +362,21 @@ function NewItemForm({ subsectionId, onAdded }) {
           onChange={(e) => setFile(e.target.files?.[0] || null)}
         />
       )}
+      {type !== "link" && (
+        <select
+          aria-label="Initial file visibility"
+          value={publishChoice}
+          onChange={(e) => setPublishChoice(e.target.value)}
+        >
+          <option value="public">Public now</option>
+          <option value="private">Keep private</option>
+          {Array.from({ length: 7 }, (_, index) => index + 1).map((days) => (
+            <option key={days} value={`schedule-${days}`}>
+              Public in {days} {days === 1 ? "day" : "days"}
+            </option>
+          ))}
+        </select>
+      )}
       <button className="btn btn-primary" type="submit" disabled={busy}>
         {busy ? "Adding…" : "Add item"}
       </button>
@@ -356,27 +387,138 @@ function NewItemForm({ subsectionId, onAdded }) {
 }
 
 function ItemRow({ item, onChanged }) {
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const isFile = ["pdf", "img"].includes(item.type);
+  const isPublic = item.visibility !== "private";
+  const scheduledAt = item.scheduled_publish_at
+    ? new Date(item.scheduled_publish_at)
+    : null;
+
   const remove = async () => {
     if (!confirm(`Delete "${item.title}"?`)) return;
     await api.deleteItem(item.id);
     onChanged();
   };
 
+  const toggleVisibility = async () => {
+    setBusy(true);
+    setMessage("");
+    try {
+      const updated = await api.setItemVisibility(
+        item.id,
+        isPublic ? "private" : "public"
+      );
+      if (updated?.notification?.failed) {
+        setMessage("Public ho gaya, lekin update email send nahi hua.");
+      } else if (!isPublic && updated?.notification?.sent > 0) {
+        setMessage(`Public ho gaya; ${updated.notification.sent} update email send hue.`);
+      } else {
+        setMessage(isPublic ? "File private ho gayi." : "File public ho gayi.");
+      }
+      onChanged();
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const setSchedule = async (event) => {
+    const days = Number(event.target.value);
+    if (!days) return;
+    setBusy(true);
+    setMessage("");
+    try {
+      const updated = await api.scheduleItem(item.id, days);
+      setMessage(
+        `${days} ${days === 1 ? "day" : "days"} baad public hoga (${new Date(
+          updated.scheduled_publish_at
+        ).toLocaleString("en-IN")}).`
+      );
+      onChanged();
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setBusy(false);
+      event.target.value = "";
+    }
+  };
+
+  const cancelSchedule = async () => {
+    setBusy(true);
+    setMessage("");
+    try {
+      await api.scheduleItem(item.id, null);
+      setMessage("Schedule cancel ho gaya; file private rahegi.");
+      onChanged();
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
-    <div className="tree-row item-row">
-      <span className="item-type-tag">{item.type}</span>
-      {item.provider && <span className="item-type-tag">{item.provider}</span>}
-      <span className="tree-label">{item.title}</span>
-      {item.type === "link" && (
-        <a className="item-meta-link" href={item.url} target="_blank" rel="noreferrer">
-          {item.url}
-        </a>
-      )}
-      <div className="tree-actions">
-        <button className="icon-btn" onClick={async () => { await api.reorderItem(item.id, "up"); onChanged(); }}>↑</button>
-        <button className="icon-btn" onClick={async () => { await api.reorderItem(item.id, "down"); onChanged(); }}>↓</button>
-        <button className="icon-btn danger" onClick={remove}>✕</button>
+    <div className="item-admin-card">
+      <div className="tree-row item-row">
+        <span className="item-type-tag">{item.type}</span>
+        {item.provider && <span className="item-type-tag">{item.provider}</span>}
+        <span className="tree-label">{item.title}</span>
+        {item.type === "link" && (
+          <a className="item-meta-link" href={item.url} target="_blank" rel="noreferrer">
+            {item.url}
+          </a>
+        )}
+        <div className="tree-actions">
+          <button className="icon-btn" onClick={async () => { await api.reorderItem(item.id, "up"); onChanged(); }}>↑</button>
+          <button className="icon-btn" onClick={async () => { await api.reorderItem(item.id, "down"); onChanged(); }}>↓</button>
+          <button className="icon-btn danger" onClick={remove}>✕</button>
+        </div>
       </div>
+      {isFile && (
+        <div className="publish-controls">
+          <button
+            className={`visibility-switch ${isPublic ? "is-public" : "is-private"}`}
+            type="button"
+            role="switch"
+            aria-checked={isPublic}
+            onClick={toggleVisibility}
+            disabled={busy}
+          >
+            <span className="visibility-switch-track" aria-hidden="true">
+              <span className="visibility-switch-thumb" />
+            </span>
+            {isPublic ? "Public" : "Private"}
+          </button>
+          <select
+            className="schedule-select"
+            aria-label={`Schedule ${item.title}`}
+            defaultValue=""
+            onChange={setSchedule}
+            disabled={busy}
+          >
+            <option value="" disabled>Schedule publish…</option>
+            {Array.from({ length: 7 }, (_, index) => index + 1).map((days) => (
+              <option key={days} value={days}>
+                In {days} {days === 1 ? "day" : "days"}
+              </option>
+            ))}
+          </select>
+          {scheduledAt && (
+            <>
+              <span className="scheduled-time">
+                Scheduled: {scheduledAt.toLocaleString("en-IN")}
+              </span>
+              <button className="schedule-cancel" type="button" onClick={cancelSchedule} disabled={busy}>
+                Cancel
+              </button>
+            </>
+          )}
+          {busy && <span className="scheduled-time">Saving…</span>}
+        </div>
+      )}
+      {message && <div className="item-row-message" role="status">{message}</div>}
     </div>
   );
 }

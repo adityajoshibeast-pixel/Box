@@ -55,6 +55,16 @@ export const api = {
   createItem: (subsectionId, fields) =>
     request(`/admin/subsections/${subsectionId}/items`, { method: "POST", body: JSON.stringify(fields) }),
   updateItem: (id, fields) => request(`/admin/items/${id}`, { method: "PUT", body: JSON.stringify(fields) }),
+  setItemVisibility: (id, visibility) =>
+    request(`/admin/items/${id}/visibility`, {
+      method: "PUT",
+      body: JSON.stringify({ visibility }),
+    }),
+  scheduleItem: (id, days) =>
+    request(`/admin/items/${id}/schedule`, {
+      method: "PUT",
+      body: JSON.stringify({ days }),
+    }),
   deleteItem: (id) => request(`/admin/items/${id}`, { method: "DELETE" }),
   reorderItem: (id, direction) =>
     request(`/admin/items/${id}/reorder`, { method: "POST", body: JSON.stringify({ direction }) }),
