@@ -194,11 +194,18 @@ function SubsectionBlock({ subsection, isOpen, onToggle, onChanged }) {
   const [items, setItems] = useState([]);
 
   const loadItems = useCallback(async () => {
-    setItems(await api.getItems(subsection.id));
+    try {
+      setItems(await api.getAdminItems(subsection.id));
+    } catch (error) {
+      console.error("Admin items refresh failed:", error);
+    }
   }, [subsection.id]);
 
   useEffect(() => {
-    if (isOpen) loadItems();
+    if (!isOpen) return undefined;
+    loadItems();
+    const timer = window.setInterval(loadItems, 10_000);
+    return () => window.clearInterval(timer);
   }, [isOpen, loadItems]);
 
   const saveTitle = async () => {
@@ -273,7 +280,9 @@ function NewItemForm({ subsectionId, onAdded }) {
     setBusy(true);
     try {
       let created;
-      const publicationFields = publishChoice.startsWith("schedule-")
+      const publicationFields = publishChoice === "schedule-minute"
+        ? { visibility: "private", publish_after_minutes: 1 }
+        : publishChoice.startsWith("schedule-")
         ? {
             visibility: "private",
             publish_after_days: Number(publishChoice.replace("schedule-", "")),
@@ -370,6 +379,7 @@ function NewItemForm({ subsectionId, onAdded }) {
         >
           <option value="public">Public now</option>
           <option value="private">Keep private</option>
+          <option value="schedule-minute">Public in 1 minute (test)</option>
           {Array.from({ length: 7 }, (_, index) => index + 1).map((days) => (
             <option key={days} value={`schedule-${days}`}>
               Public in {days} {days === 1 ? "day" : "days"}
@@ -425,14 +435,19 @@ function ItemRow({ item, onChanged }) {
   };
 
   const setSchedule = async (event) => {
-    const days = Number(event.target.value);
-    if (!days) return;
+    const selection = event.target.value;
+    if (!selection) return;
+    const isMinuteTest = selection === "minute";
+    const days = Number(selection);
     setBusy(true);
     setMessage("");
     try {
-      const updated = await api.scheduleItem(item.id, days);
+      const updated = await api.scheduleItem(
+        item.id,
+        isMinuteTest ? { minutes: 1 } : days
+      );
       setMessage(
-        `${days} ${days === 1 ? "day" : "days"} baad public hoga (${new Date(
+        `${isMinuteTest ? "1 minute" : `${days} ${days === 1 ? "day" : "days"}`} baad public hoga (${new Date(
           updated.scheduled_publish_at
         ).toLocaleString("en-IN")}).`
       );
@@ -499,6 +514,7 @@ function ItemRow({ item, onChanged }) {
             disabled={busy}
           >
             <option value="" disabled>Schedule publish…</option>
+            <option value="minute">In 1 minute (test)</option>
             {Array.from({ length: 7 }, (_, index) => index + 1).map((days) => (
               <option key={days} value={days}>
                 In {days} {days === 1 ? "day" : "days"}

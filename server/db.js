@@ -2,6 +2,7 @@ const { MongoClient } = require("mongodb");
 const { nanoid } = require("nanoid");
 
 let clientPromise = null;
+let indexesPromise = null;
 
 // Some Windows setups fail to resolve MongoDB Atlas's SRV DNS records even
 // after the OS-level DNS is changed, because Node keeps using its own
@@ -45,10 +46,27 @@ async function getDb() {
   return client.db(process.env.MONGODB_DB || "menu_app");
 }
 
-const col = (name) => getDb().then((db) => db.collection(name));
+function warmIndexes(database) {
+  if (!indexesPromise) {
+    indexesPromise = Promise.all([
+      database.collection("sections").createIndex({ order: 1 }),
+      database.collection("subsections").createIndex({ section_id: 1, order: 1 }),
+      database.collection("items").createIndex({ subsection_id: 1, visibility: 1, order: 1 }),
+      database.collection("items").createIndex({ visibility: 1, scheduled_publish_at: 1 }),
+    ]).catch((error) => {
+      indexesPromise = null;
+      console.error("Database index warm-up failed:", error);
+    });
+  }
+}
+
+const col = (name) =>
+  getDb().then((database) => {
+    warmIndexes(database);
+    return database.collection(name);
+  });
 
 const byOrder = (a, b) => a.order - b.order;
-const nextOrder = (list) => (list.length ? Math.max(...list.map((x) => x.order)) + 1 : 0);
 const publicItemFilter = {
   $or: [{ visibility: "public" }, { visibility: { $exists: false } }],
 };
@@ -77,7 +95,7 @@ module.exports = {
   // ---------- sections ----------
   async listSections() {
     const c = await col("sections");
-    return (await c.find().toArray()).sort(byOrder).map(toPublic);
+    return (await c.find().sort({ order: 1 }).toArray()).map(toPublic);
   },
   async getSection(id) {
     const c = await col("sections");
@@ -85,8 +103,8 @@ module.exports = {
   },
   async createSection(title) {
     const c = await col("sections");
-    const list = await c.find().toArray();
-    const row = { _id: nanoid(), title, order: nextOrder(list) };
+    const last = await c.find().sort({ order: -1 }).limit(1).next();
+    const row = { _id: nanoid(), title, order: last ? last.order + 1 : 0 };
     await c.insertOne(row);
     return toPublic(row);
   },
@@ -117,7 +135,7 @@ module.exports = {
   // ---------- subsections ----------
   async listSubsections(sectionId) {
     const c = await col("subsections");
-    return (await c.find({ section_id: sectionId }).toArray()).sort(byOrder).map(toPublic);
+    return (await c.find({ section_id: sectionId }).sort({ order: 1 }).toArray()).map(toPublic);
   },
   async getSubsection(id) {
     const c = await col("subsections");
@@ -125,8 +143,8 @@ module.exports = {
   },
   async createSubsection(sectionId, title) {
     const c = await col("subsections");
-    const siblings = await c.find({ section_id: sectionId }).toArray();
-    const row = { _id: nanoid(), section_id: sectionId, title, order: nextOrder(siblings) };
+    const last = await c.find({ section_id: sectionId }).sort({ order: -1 }).limit(1).next();
+    const row = { _id: nanoid(), section_id: sectionId, title, order: last ? last.order + 1 : 0 };
     await c.insertOne(row);
     return toPublic(row);
   },
@@ -159,7 +177,7 @@ module.exports = {
     const filter = includePrivate
       ? { subsection_id: subsectionId }
       : { subsection_id: subsectionId, ...publicItemFilter };
-    return (await c.find(filter).toArray()).sort(byOrder).map(toPublic);
+    return (await c.find(filter).sort({ order: 1 }).toArray()).map(toPublic);
   },
   async getItem(id, { includePrivate = false } = {}) {
     const c = await col("items");
@@ -168,8 +186,13 @@ module.exports = {
   },
   async createItem(subsectionId, fields) {
     const c = await col("items");
-    const siblings = await c.find({ subsection_id: subsectionId }).toArray();
-    const row = { _id: nanoid(), subsection_id: subsectionId, order: nextOrder(siblings), ...fields };
+    const last = await c.find({ subsection_id: subsectionId }).sort({ order: -1 }).limit(1).next();
+    const row = {
+      _id: nanoid(),
+      subsection_id: subsectionId,
+      order: last ? last.order + 1 : 0,
+      ...fields,
+    };
     await c.insertOne(row);
     return toPublic(row);
   },

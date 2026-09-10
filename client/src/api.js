@@ -22,7 +22,9 @@ async function request(path, options = {}) {
 export const api = {
   // public
   getSections: () => request("/sections"),
+  getSection: (id) => request(`/sections/${id}`),
   getSubsections: (sectionId) => request(`/sections/${sectionId}/subsections`),
+  getSubsection: (id) => request(`/subsections/${id}`),
   getItems: (subsectionId) => request(`/subsections/${subsectionId}/items`),
   getItem: (id) => request(`/items/${id}`),
   subscribe: (email, website = "") =>
@@ -52,6 +54,7 @@ export const api = {
     request(`/admin/subsections/${id}/reorder`, { method: "POST", body: JSON.stringify({ direction }) }),
 
   // admin items
+  getAdminItems: (subsectionId) => request(`/admin/subsections/${subsectionId}/items`),
   createItem: (subsectionId, fields) =>
     request(`/admin/subsections/${subsectionId}/items`, { method: "POST", body: JSON.stringify(fields) }),
   updateItem: (id, fields) => request(`/admin/items/${id}`, { method: "PUT", body: JSON.stringify(fields) }),
@@ -60,10 +63,14 @@ export const api = {
       method: "PUT",
       body: JSON.stringify({ visibility }),
     }),
-  scheduleItem: (id, days) =>
+  scheduleItem: (id, schedule) =>
     request(`/admin/items/${id}/schedule`, {
       method: "PUT",
-      body: JSON.stringify({ days }),
+      body: JSON.stringify(
+        schedule === null || typeof schedule === "number"
+          ? { days: schedule }
+          : schedule
+      ),
     }),
   deleteItem: (id) => request(`/admin/items/${id}`, { method: "DELETE" }),
   reorderItem: (id, direction) =>

@@ -11,10 +11,7 @@ export default function ViewerSection() {
 
   useEffect(() => {
     api.getSubsections(sectionId).then(setSubsections);
-    api.getSections().then((all) => {
-      const found = all.find((s) => s.id === sectionId);
-      if (found) setSectionTitle(found.title);
-    });
+    api.getSection(sectionId).then((section) => setSectionTitle(section.title));
   }, [sectionId]);
 
   return (

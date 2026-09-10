@@ -13,11 +13,24 @@ export default function ViewerSubsection() {
   const [subTitle, setSubTitle] = useState("");
 
   useEffect(() => {
-    api.getItems(subsectionId).then(setItems);
-    api.getSubsections(sectionId).then((all) => {
-      const found = all.find((s) => s.id === subsectionId);
-      if (found) setSubTitle(found.title);
-    });
+    let active = true;
+    const refreshItems = () => {
+      api.getItems(subsectionId)
+        .then((nextItems) => active && setItems(nextItems))
+        .catch((error) => console.error("Items refresh failed:", error));
+    };
+
+    refreshItems();
+    api.getSubsection(subsectionId)
+      .then((subsection) => active && setSubTitle(subsection.title))
+      .catch((error) => console.error("Subsection load failed:", error));
+
+    // A due one-minute/day schedule becomes visible without a manual refresh.
+    const timer = window.setInterval(refreshItems, 10_000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
   }, [sectionId, subsectionId]);
 
   const openItem = (item) => {

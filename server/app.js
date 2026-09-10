@@ -49,11 +49,6 @@ const cookieOpts = {
   maxAge: 7 * 24 * 60 * 60 * 1000,
 };
 
-function requestIsAdmin(req) {
-  const token = req.cookies?.[COOKIE_NAME];
-  return Boolean(token && verifyToken(token));
-}
-
 async function publishDueScheduledItems(req) {
   const publishedItems = await db.publishDueItems(new Date());
   const results = [];
@@ -178,13 +173,36 @@ app.get("/api/sections/:id/subsections", async (req, res, next) => {
   }
 });
 
+app.get("/api/sections/:id", async (req, res, next) => {
+  try {
+    const section = await db.getSection(req.params.id);
+    if (!section) return res.status(404).json({ error: "Not found" });
+    res.set("Cache-Control", "public, s-maxage=30, stale-while-revalidate=300");
+    res.json(section);
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.get("/api/subsections/:id", async (req, res, next) => {
+  try {
+    const subsection = await db.getSubsection(req.params.id);
+    if (!subsection) return res.status(404).json({ error: "Not found" });
+    res.set("Cache-Control", "public, s-maxage=30, stale-while-revalidate=300");
+    res.json(subsection);
+  } catch (err) {
+    next(err);
+  }
+});
+
 app.get("/api/subsections/:id/items", async (req, res, next) => {
   try {
-    const items = await db.listItems(
-      req.params.id,
-      { includePrivate: requestIsAdmin(req) }
-    );
+    // This endpoint powers the public viewer. Even an admin cookie must not
+    // reveal private or not-yet-due scheduled files here.
+    await publishDueScheduledItems(req);
+    const items = await db.listItems(req.params.id);
 
+    res.set("Cache-Control", "private, no-store");
     res.json(items);
   } catch (err) {
     next(err);
@@ -193,9 +211,7 @@ app.get("/api/subsections/:id/items", async (req, res, next) => {
 
 app.get("/api/items/:id", async (req, res, next) => {
   try {
-    const item = await db.getItem(req.params.id, {
-      includePrivate: requestIsAdmin(req),
-    });
+    const item = await db.getItem(req.params.id);
 
     if (!item) {
       return res.status(404).json({
@@ -211,9 +227,7 @@ app.get("/api/items/:id", async (req, res, next) => {
 
 app.post("/api/items/:id/download", async (req, res, next) => {
   try {
-    const item = await db.getItem(req.params.id, {
-      includePrivate: requestIsAdmin(req),
-    });
+    const item = await db.getItem(req.params.id);
 
     if (!item || !["pdf", "img"].includes(item.type)) {
       return res.status(404).json({ error: "File not found" });
@@ -475,6 +489,17 @@ admin.post(
 // ITEMS
 // --------------------------------------------------
 
+admin.get("/subsections/:id/items", async (req, res, next) => {
+  try {
+    await publishDueScheduledItems(req);
+    const items = await db.listItems(req.params.id, { includePrivate: true });
+    res.set("Cache-Control", "private, no-store");
+    res.json(items);
+  } catch (err) {
+    next(err);
+  }
+});
+
 admin.post("/subsections/:id/items", async (req, res, next) => {
   try {
     const { title, type, url, file_url, download_url, original_name, provider, public_id, resource_type } =
@@ -483,12 +508,15 @@ admin.post("/subsections/:id/items", async (req, res, next) => {
     if (!["link", "pdf", "img"].includes(type)) return res.status(400).json({ error: "Invalid type" });
 
     const requestedVisibility = req.body.visibility === "private" ? "private" : "public";
+    const publishAfterMinutes = Number(req.body.publish_after_minutes);
     const publishAfterDays = Number(req.body.publish_after_days);
-    const hasSchedule =
+    const hasMinuteSchedule = type !== "link" && publishAfterMinutes === 1;
+    const hasDaySchedule =
       type !== "link" &&
       Number.isInteger(publishAfterDays) &&
       publishAfterDays >= 1 &&
       publishAfterDays <= 7;
+    const hasSchedule = hasMinuteSchedule || hasDaySchedule;
     const fields = {
       title: title.trim(),
       type,
@@ -496,7 +524,8 @@ admin.post("/subsections/:id/items", async (req, res, next) => {
     };
     if (hasSchedule) {
       fields.scheduled_publish_at = new Date(
-        Date.now() + publishAfterDays * 24 * 60 * 60 * 1000
+        Date.now() +
+          (hasMinuteSchedule ? 60 * 1000 : publishAfterDays * 24 * 60 * 60 * 1000)
       );
     }
     if (type === "link") {
@@ -572,12 +601,16 @@ admin.put("/items/:id/schedule", async (req, res, next) => {
       return res.json(updated);
     }
 
+    const minutes = Number(req.body?.minutes);
     const days = Number(req.body?.days);
-    if (!Number.isInteger(days) || days < 1 || days > 7) {
+    const isMinuteTest = minutes === 1;
+    if (!isMinuteTest && (!Number.isInteger(days) || days < 1 || days > 7)) {
       return res.status(400).json({ error: "Schedule must be between 1 and 7 days" });
     }
 
-    const publishAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+    const publishAt = new Date(
+      Date.now() + (isMinuteTest ? 60 * 1000 : days * 24 * 60 * 60 * 1000)
+    );
     const updated = await db.scheduleItem(req.params.id, publishAt);
     res.json(updated);
   } catch (err) {
