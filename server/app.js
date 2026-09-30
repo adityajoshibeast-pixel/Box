@@ -13,6 +13,8 @@ const {
 
 const { deleteFile } = require("./blob");
 const { deleteCloudinaryFile } = require("./cloudinary");
+const { nanoid } = require("nanoid");
+const { getPresignedUploadUrl, getPresignedDownloadUrl, deleteB2File } = require("./b2");
 const {
   sendNewItemNotification,
   sendDownloadNotification,
@@ -146,6 +148,21 @@ app.post("/api/admin/blob/token", requireAdmin, async (req, res) => {
   }
 });
 
+/* =======================================================================
+   B2 PRESIGNED UPLOAD (browser uploads straight to Backblaze B2 using this)
+   ======================================================================= */
+app.post("/api/admin/b2/presign", requireAdmin, async (req, res) => {
+  try {
+    const { filename, contentType } = req.body;
+    if (!filename) return res.status(400).json({ error: "filename is required" });
+    const key = `${nanoid()}-${filename}`.replace(/\s+/g, "_");
+    const { uploadUrl } = await getPresignedUploadUrl(key, contentType);
+    res.json({ uploadUrl, key });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 // --------------------------------------------------
 // PUBLIC ROUTES
 // --------------------------------------------------
@@ -220,6 +237,23 @@ app.get("/api/items/:id", async (req, res, next) => {
     }
 
     res.json(item);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// B2's bucket stays private, so every view/download needs a freshly-signed
+// URL — this route generates one and redirects to it. Public, no auth
+// needed (same as viewing the item itself).
+app.get("/api/items/:id/open", async (req, res, next) => {
+  try {
+    const item = await db.getItem(req.params.id);
+    if (!item || item.provider !== "b2") return res.status(404).json({ error: "Not found" });
+    const url = await getPresignedDownloadUrl(item.key, {
+      download: req.query.download === "1",
+      filename: item.original_name,
+    });
+    res.redirect(url);
   } catch (err) {
     next(err);
   }
@@ -502,7 +536,7 @@ admin.get("/subsections/:id/items", async (req, res, next) => {
 
 admin.post("/subsections/:id/items", async (req, res, next) => {
   try {
-    const { title, type, url, file_url, download_url, original_name, provider, public_id, resource_type } =
+    const { title, type, url, file_url, download_url, original_name, provider, public_id, resource_type, key } =
       req.body;
     if (!title || !type) return res.status(400).json({ error: "Title and type are required" });
     if (!["link", "pdf", "img"].includes(type)) return res.status(400).json({ error: "Invalid type" });
@@ -534,13 +568,19 @@ admin.post("/subsections/:id/items", async (req, res, next) => {
       }
       fields.url = url.trim();
     } else {
-      if (!file_url) return res.status(400).json({ error: `A ${type} file is required` });
-      fields.file_url = file_url;
-      fields.download_url = download_url || file_url;
+      if (!file_url && !(provider === "b2" && key)) {
+        return res.status(400).json({ error: `A ${type} file is required` });
+      }
+      if (file_url) {
+        fields.file_url = file_url;
+        fields.download_url = download_url || file_url;
+      }
+
       fields.original_name = original_name || title;
       fields.provider = provider || "blob"; // "blob" or "cloudinary"
       if (public_id) fields.public_id = public_id;
       if (resource_type) fields.resource_type = resource_type;
+      if (key) fields.key = key;
     }
     const item = await db.createItem(req.params.id, fields);
     let notification = { sent: 0, withheld: fields.visibility !== "public" };
@@ -656,6 +696,8 @@ admin.put("/items/:id", async (req, res, next) => {
       // delete the old file from wherever it actually lives
       if (existing.provider === "cloudinary") {
         await deleteCloudinaryFile(existing.public_id, existing.resource_type);
+      } else if (existing.provider === "b2") {
+        await deleteB2File(existing.key);
       } else {
         await deleteFile(existing.file_url);
       }
@@ -681,9 +723,11 @@ admin.put("/items/:id", async (req, res, next) => {
 admin.delete("/items/:id", async (req, res, next) => {
   try {
     const row = await db.deleteItem(req.params.id);
-    if (row && row.file_url) {
+    if (row && (row.file_url || row.key)) {
       if (row.provider === "cloudinary") {
         await deleteCloudinaryFile(row.public_id, row.resource_type);
+      } else if (row.provider === "b2") {
+        await deleteB2File(row.key);
       } else {
         await deleteFile(row.file_url);
       }

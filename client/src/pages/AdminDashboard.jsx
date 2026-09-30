@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { upload } from "@vercel/blob/client";
 import { uploadToCloudinary } from "../cloudinaryUpload.js";
+import { uploadToB2 } from "../b2Upload.js";
 import { api } from "../api.js";
 
 // Files under this size go to Cloudinary, larger ones go to Vercel Blob —
@@ -311,7 +312,8 @@ function NewItemForm({ subsectionId, onAdded }) {
         } else {
           // Large file — goes to Vercel Blob, also straight from the
           // browser, so it skips the serverless function's body-size limit.
-          const blob = await upload(file.name, file, {
+          try {
+            const blob = await upload(file.name, file, {
             access: "public",
             handleUploadUrl: "/api/admin/blob/token",
           });
@@ -324,6 +326,18 @@ function NewItemForm({ subsectionId, onAdded }) {
             download_url: `${blob.url}?download=1`,
             original_name: file.name,
           };
+        } catch (blobErr) {
+          console.warn("Vercel Blob upload failed, falling back to B2:", blobErr.message);
+          const { key } = await uploadToB2(file);
+          fields = {
+            ...publicationFields,
+            title: title.trim(),
+            type,
+            provider: "b2",
+            key,
+            original_name: file.name,
+          };
+        }
         }
         created = await api.createItem(subsectionId, fields);
       }

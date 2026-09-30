@@ -75,4 +75,14 @@ export const api = {
   deleteItem: (id) => request(`/admin/items/${id}`, { method: "DELETE" }),
   reorderItem: (id, direction) =>
     request(`/admin/items/${id}/reorder`, { method: "POST", body: JSON.stringify({ direction }) }),
+  // b2 upload
+  getB2UploadUrl: (filename, contentType) =>
+    request("/admin/b2/presign", { method: "POST", body: JSON.stringify({ filename, contentType }) }),
+
+  // download tracking
+  logDownload: (id, name) =>
+    request(`/items/${id}/download`, {
+      method: "POST",
+      body: JSON.stringify({ name, username: name }),
+    }),
 };

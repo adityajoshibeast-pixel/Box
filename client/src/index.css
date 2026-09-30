@@ -1158,3 +1158,65 @@ body {
     animation: none;
   }
 }
+
+/* ---------- ItemViewer Name Prompt Modal ---------- */
+.name-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(48, 38, 74, 0.42);
+  backdrop-filter: blur(5px);
+}
+
+.name-card {
+  width: min(400px, 100%);
+  padding: 28px;
+  border-radius: 20px;
+  background: #fff;
+  color: #3a3352;
+  box-shadow: 0 20px 60px rgba(38, 25, 70, 0.28);
+  animation: modal-arrive 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.name-card h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 20px;
+}
+
+.name-card .hint {
+  margin: 0;
+  color: #716a87;
+  font-size: 13px;
+}
+
+.name-card input[type="text"] {
+  height: 42px;
+  padding: 0 14px;
+  border: 1px solid #ded6ef;
+  border-radius: 10px;
+  outline: none;
+  font: inherit;
+  font-size: 14px;
+  background: #fcfbff;
+  color: #3a3352;
+}
+
+.name-card input[type="text"]:focus {
+  border-color: #8969d8;
+  box-shadow: 0 0 0 3px rgba(137, 105, 216, 0.14);
+}
+
+.name-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+}
+
