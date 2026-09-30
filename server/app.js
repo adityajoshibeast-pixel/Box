@@ -267,16 +267,28 @@ app.post("/api/items/:id/download", async (req, res, next) => {
       return res.status(404).json({ error: "File not found" });
     }
 
-    const target = item.download_url || item.file_url;
     let downloadUrl;
-
-    try {
-      downloadUrl = new URL(target);
-      if (!["http:", "https:"].includes(downloadUrl.protocol)) {
-        throw new Error("Unsupported download URL");
+    if (item.provider === "b2") {
+      try {
+        const presigned = await getPresignedDownloadUrl(item.key, {
+          download: true,
+          filename: item.original_name,
+        });
+        downloadUrl = new URL(presigned);
+      } catch (b2Err) {
+        console.error("B2 presigned download error:", b2Err.message);
+        return res.status(404).json({ error: "Download is unavailable" });
       }
-    } catch {
-      return res.status(404).json({ error: "Download is unavailable" });
+    } else {
+      const target = item.download_url || item.file_url;
+      try {
+        downloadUrl = new URL(target);
+        if (!["http:", "https:"].includes(downloadUrl.protocol)) {
+          throw new Error("Unsupported download URL");
+        }
+      } catch {
+        return res.status(404).json({ error: "Download is unavailable" });
+      }
     }
 
     try {

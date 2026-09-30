@@ -17,8 +17,12 @@ async function getPresignedUploadUrl(key, contentType) {
   if (!process.env.B2_ENDPOINT || !BUCKET) {
     throw new Error("Backblaze B2 is not configured (missing B2_* env vars)");
   }
-  const command = new PutObjectCommand({ Bucket: BUCKET, Key: key, ContentType: contentType });
-  const uploadUrl = await getSignedUrl(client, command, { expiresIn: 300 }); // 5 minutes
+  const command = new PutObjectCommand({
+    Bucket: BUCKET,
+    Key: key,
+    ...(contentType ? { ContentType: contentType } : {}),
+  });
+  const uploadUrl = await getSignedUrl(client, command, { expiresIn: 3600 }); // 1 hour for large file uploads
   return { uploadUrl };
 }
 

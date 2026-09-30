@@ -267,6 +267,7 @@ function NewItemForm({ subsectionId, onAdded }) {
   const [file, setFile] = useState(null);
   const [publishChoice, setPublishChoice] = useState("public");
   const [busy, setBusy] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -274,6 +275,7 @@ function NewItemForm({ subsectionId, onAdded }) {
     e.preventDefault();
     setError("");
     setNotice("");
+    setUploadProgress(null);
     if (!title.trim()) return setError("Title chahiye.");
     if (type === "link" && !url.trim()) return setError("URL chahiye.");
     if (type !== "link" && !file) return setError("File chuno.");
@@ -310,34 +312,36 @@ function NewItemForm({ subsectionId, onAdded }) {
             original_name: file.name,
           };
         } else {
-          // Large file — goes to Vercel Blob, also straight from the
-          // browser, so it skips the serverless function's body-size limit.
+          // Large file (>= 10MB) — goes straight to Backblaze B2 from the browser!
+          // Backblaze B2 provides 10GB free storage and handles large files reliably.
           try {
+            const { key } = await uploadToB2(file, (percent) => {
+              setUploadProgress(percent);
+            });
+            fields = {
+              ...publicationFields,
+              title: title.trim(),
+              type,
+              provider: "b2",
+              key,
+              original_name: file.name,
+            };
+          } catch (b2Err) {
+            console.warn("Backblaze B2 upload failed, falling back to Vercel Blob:", b2Err.message);
             const blob = await upload(file.name, file, {
-            access: "public",
-            handleUploadUrl: "/api/admin/blob/token",
-          });
-          fields = {
-            ...publicationFields,
-            title: title.trim(),
-            type,
-            provider: "blob",
-            file_url: blob.url,
-            download_url: `${blob.url}?download=1`,
-            original_name: file.name,
-          };
-        } catch (blobErr) {
-          console.warn("Vercel Blob upload failed, falling back to B2:", blobErr.message);
-          const { key } = await uploadToB2(file);
-          fields = {
-            ...publicationFields,
-            title: title.trim(),
-            type,
-            provider: "b2",
-            key,
-            original_name: file.name,
-          };
-        }
+              access: "public",
+              handleUploadUrl: "/api/admin/blob/token",
+            });
+            fields = {
+              ...publicationFields,
+              title: title.trim(),
+              type,
+              provider: "blob",
+              file_url: blob.url,
+              download_url: `${blob.url}?download=1`,
+              original_name: file.name,
+            };
+          }
         }
         created = await api.createItem(subsectionId, fields);
       }
@@ -365,6 +369,7 @@ function NewItemForm({ subsectionId, onAdded }) {
       setError(err.message);
     } finally {
       setBusy(false);
+      setUploadProgress(null);
     }
   };
 
@@ -402,7 +407,7 @@ function NewItemForm({ subsectionId, onAdded }) {
         </select>
       )}
       <button className="btn btn-primary" type="submit" disabled={busy}>
-        {busy ? "Adding…" : "Add item"}
+        {busy ? (uploadProgress !== null ? `Uploading ${uploadProgress}%…` : "Adding…") : "Add item"}
       </button>
       {error && <span className="slip-error">{error}</span>}
       {notice && <span className="item-notice" role="status">{notice}</span>}
