@@ -49,4 +49,23 @@ async function deleteB2File(key) {
   }
 }
 
-module.exports = { getPresignedUploadUrl, getPresignedDownloadUrl, deleteB2File };
+async function uploadB2Buffer(key, buffer, contentType) {
+  if (!process.env.B2_ENDPOINT || !BUCKET) {
+    throw new Error("Backblaze B2 is not configured (missing B2_* env vars)");
+  }
+  const command = new PutObjectCommand({
+    Bucket: BUCKET,
+    Key: key,
+    Body: buffer,
+    ...(contentType ? { ContentType: contentType } : {}),
+  });
+  await client.send(command);
+  return { key };
+}
+
+module.exports = {
+  getPresignedUploadUrl,
+  getPresignedDownloadUrl,
+  deleteB2File,
+  uploadB2Buffer,
+};

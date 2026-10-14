@@ -1,13 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { upload } from "@vercel/blob/client";
-import { uploadToCloudinary } from "../cloudinaryUpload.js";
 import { uploadToB2 } from "../b2Upload.js";
 import { api } from "../api.js";
-
-// Files under this size go to Cloudinary, larger ones go to Vercel Blob —
-// spreads usage across both free tiers instead of maxing out one.
-const CLOUDINARY_SIZE_LIMIT = 10 * 1024 * 1024; // 10MB
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -205,7 +199,9 @@ function SubsectionBlock({ subsection, isOpen, onToggle, onChanged }) {
   useEffect(() => {
     if (!isOpen) return undefined;
     loadItems();
-    const timer = window.setInterval(loadItems, 10_000);
+    // 60 s is sufficient for scheduled-publish test (1-minute) to surface
+    // within one poll cycle, without generating excessive API traffic.
+    const timer = window.setInterval(loadItems, 60_000);
     return () => window.clearInterval(timer);
   }, [isOpen, loadItems]);
 
@@ -294,54 +290,23 @@ function NewItemForm({ subsectionId, onAdded }) {
       if (type === "link") {
         created = await api.createItem(subsectionId, { title: title.trim(), type, url: url.trim() });
       } else {
-        const resourceType = type === "pdf" ? "raw" : "image";
+        // All new file uploads (PDF, Image, MP4 Video) go straight to Backblaze B2.
+        // Existing files on Vercel Blob / Cloudinary remain safely stored and fully accessible.
         let fields;
-
-        if (file.size < CLOUDINARY_SIZE_LIMIT) {
-          // Small file — goes to Cloudinary, straight from the browser.
-          const result = await uploadToCloudinary(file, resourceType);
+        try {
+          const { key } = await uploadToB2(file, (percent) => {
+            setUploadProgress(percent);
+          });
           fields = {
             ...publicationFields,
             title: title.trim(),
             type,
-            provider: "cloudinary",
-            file_url: result.secure_url,
-            download_url: result.secure_url.replace("/upload/", "/upload/fl_attachment/"),
-            public_id: result.public_id,
-            resource_type: result.resource_type,
+            provider: "b2",
+            key,
             original_name: file.name,
           };
-        } else {
-          // Large file (>= 10MB) — goes straight to Backblaze B2 from the browser!
-          // Backblaze B2 provides 10GB free storage and handles large files reliably.
-          try {
-            const { key } = await uploadToB2(file, (percent) => {
-              setUploadProgress(percent);
-            });
-            fields = {
-              ...publicationFields,
-              title: title.trim(),
-              type,
-              provider: "b2",
-              key,
-              original_name: file.name,
-            };
-          } catch (b2Err) {
-            console.warn("Backblaze B2 upload failed, falling back to Vercel Blob:", b2Err.message);
-            const blob = await upload(file.name, file, {
-              access: "public",
-              handleUploadUrl: "/api/admin/blob/token",
-            });
-            fields = {
-              ...publicationFields,
-              title: title.trim(),
-              type,
-              provider: "blob",
-              file_url: blob.url,
-              download_url: `${blob.url}?download=1`,
-              original_name: file.name,
-            };
-          }
+        } catch (b2Err) {
+          throw new Error(`Backblaze B2 upload failed: ${b2Err.message}. Please retry or check B2 credentials.`);
         }
         created = await api.createItem(subsectionId, fields);
       }
@@ -380,13 +345,20 @@ function NewItemForm({ subsectionId, onAdded }) {
         <option value="link">Link</option>
         <option value="pdf">PDF</option>
         <option value="img">Image</option>
+        <option value="mp4">MP4 Video</option>
       </select>
       {type === "link" ? (
         <input type="url" placeholder="https://…" value={url} onChange={(e) => setUrl(e.target.value)} />
       ) : (
         <input
           type="file"
-          accept={type === "pdf" ? "application/pdf" : "image/*"}
+          accept={
+            type === "pdf"
+              ? "application/pdf"
+              : type === "mp4" || type === "video"
+              ? "video/mp4,video/*"
+              : "image/*"
+          }
           onChange={(e) => setFile(e.target.files?.[0] || null)}
         />
       )}
@@ -418,7 +390,7 @@ function NewItemForm({ subsectionId, onAdded }) {
 function ItemRow({ item, onChanged }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
-  const isFile = ["pdf", "img"].includes(item.type);
+  const isFile = ["pdf", "img", "mp4", "video"].includes(item.type);
   const isPublic = item.visibility !== "private";
   const scheduledAt = item.scheduled_publish_at
     ? new Date(item.scheduled_publish_at)

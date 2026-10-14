@@ -8,6 +8,8 @@ const TYPE_LABELS = {
   link: "Link",
   pdf: "PDF",
   img: "Image",
+  mp4: "MP4 Video",
+  video: "Video",
 };
 
 const DOWNLOAD_HEADER_LABELS = {

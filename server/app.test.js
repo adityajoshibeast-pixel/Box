@@ -87,3 +87,37 @@ test("admin can schedule a file for one minute", async (t) => {
   assert.ok(scheduledAt.getTime() - before >= 59_000);
   assert.ok(scheduledAt.getTime() - before <= 61_000);
 });
+
+test("admin can create an mp4 video item with b2 provider", async (t) => {
+  db.createItem = async (_subId, fields) => ({ id: "item-mp4", ...fields });
+
+  const server = app.listen(0);
+  t.after(() => server.close());
+  const base = `http://127.0.0.1:${server.address().port}`;
+
+  const login = await fetch(`${base}/api/admin/login`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ password: "test-password" }),
+  });
+  const cookie = login.headers.get("set-cookie").split(";")[0];
+
+  const response = await fetch(`${base}/api/admin/subsections/sub-1/items`, {
+    method: "POST",
+    headers: { cookie, "content-type": "application/json" },
+    body: JSON.stringify({
+      title: "Demo Video",
+      type: "mp4",
+      provider: "b2",
+      key: "test-key-123.mp4",
+      original_name: "demo.mp4",
+      visibility: "public",
+    }),
+  });
+
+  assert.equal(response.status, 201);
+  const data = await response.json();
+  assert.equal(data.type, "mp4");
+  assert.equal(data.provider, "b2");
+  assert.equal(data.key, "test-key-123.mp4");
+});

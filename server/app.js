@@ -263,7 +263,7 @@ app.post("/api/items/:id/download", async (req, res, next) => {
   try {
     const item = await db.getItem(req.params.id);
 
-    if (!item || !["pdf", "img"].includes(item.type)) {
+    if (!item || !["pdf", "img", "mp4", "video"].includes(item.type)) {
       return res.status(404).json({ error: "File not found" });
     }
 
@@ -551,7 +551,7 @@ admin.post("/subsections/:id/items", async (req, res, next) => {
     const { title, type, url, file_url, download_url, original_name, provider, public_id, resource_type, key } =
       req.body;
     if (!title || !type) return res.status(400).json({ error: "Title and type are required" });
-    if (!["link", "pdf", "img"].includes(type)) return res.status(400).json({ error: "Invalid type" });
+    if (!["link", "pdf", "img", "mp4", "video"].includes(type)) return res.status(400).json({ error: "Invalid type" });
 
     const requestedVisibility = req.body.visibility === "private" ? "private" : "public";
     const publishAfterMinutes = Number(req.body.publish_after_minutes);
@@ -617,7 +617,7 @@ admin.post("/subsections/:id/items", async (req, res, next) => {
 admin.put("/items/:id/visibility", async (req, res, next) => {
   try {
     const existing = await db.getItem(req.params.id, { includePrivate: true });
-    if (!existing || !["pdf", "img"].includes(existing.type)) {
+    if (!existing || !["pdf", "img", "mp4", "video"].includes(existing.type)) {
       return res.status(404).json({ error: "File not found" });
     }
 
@@ -644,7 +644,7 @@ admin.put("/items/:id/visibility", async (req, res, next) => {
 admin.put("/items/:id/schedule", async (req, res, next) => {
   try {
     const existing = await db.getItem(req.params.id, { includePrivate: true });
-    if (!existing || !["pdf", "img"].includes(existing.type)) {
+    if (!existing || !["pdf", "img", "mp4", "video"].includes(existing.type)) {
       return res.status(404).json({ error: "File not found" });
     }
 
@@ -704,7 +704,7 @@ admin.put("/items/:id", async (req, res, next) => {
         req.body.url.trim();
     }
 
-    if (req.body.file_url) {
+    if (req.body.file_url || (req.body.provider === "b2" && req.body.key)) {
       // delete the old file from wherever it actually lives
       if (existing.provider === "cloudinary") {
         await deleteCloudinaryFile(existing.public_id, existing.resource_type);
@@ -716,7 +716,8 @@ admin.put("/items/:id", async (req, res, next) => {
       fields.file_url = req.body.file_url;
       fields.download_url = req.body.download_url || req.body.file_url;
       fields.original_name = req.body.original_name || existing.original_name;
-      fields.provider = req.body.provider || "blob";
+      fields.provider = req.body.provider || "b2";
+      if (req.body.key) fields.key = req.body.key;
       if (req.body.public_id) fields.public_id = req.body.public_id;
       if (req.body.resource_type) fields.resource_type = req.body.resource_type;
     }

@@ -79,6 +79,19 @@ export default function ItemViewer() {
       </div>
       {item.type === "pdf" ? (
         <iframe className="pdf-frame" src={viewUrl} title={item.title} />
+      ) : item.type === "mp4" || item.type === "video" ? (
+        <div className="video-frame">
+          <video
+            controls
+            playsInline
+            preload="metadata"
+            className="video-player"
+            src={viewUrl}
+            title={item.title}
+          >
+            Your browser does not support HTML video.
+          </video>
+        </div>
       ) : (
         <div className="img-frame">
           <img src={viewUrl} alt={item.title} />

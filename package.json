@@ -7,7 +7,8 @@
     "dev:server": "node server/localDev.js",
     "dev": "npm --prefix client run dev",
     "build": "npm --prefix client run build",
-    "test": "node --test server/app.test.js"
+    "test": "node --test server/app.test.js",
+    "migrate:blob": "node scripts/migrateBlobToB2.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.658.1",

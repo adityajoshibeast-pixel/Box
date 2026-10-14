@@ -165,7 +165,7 @@ admin.get("/subsections/:id/items", (req, res) => res.json(db.listItems(req.para
 admin.post("/subsections/:id/items", upload.single("file"), (req, res) => {
   const { title, type, url } = req.body;
   if (!title || !type) return res.status(400).json({ error: "Title and type are required" });
-  if (!["link", "pdf", "img"].includes(type)) return res.status(400).json({ error: "Invalid type" });
+  if (!["link", "pdf", "img", "mp4", "video"].includes(type)) return res.status(400).json({ error: "Invalid type" });
 
   const fields = { title: title.trim(), type };
   if (type === "link") {
