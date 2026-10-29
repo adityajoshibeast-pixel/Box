@@ -4,13 +4,12 @@ import { api } from "./api.js";
 // the serverless function entirely so there's no request-size limit.
 export function uploadToB2(file, onProgress) {
   return new Promise((resolve, reject) => {
-    api.getB2UploadUrl(file.name, file.type || "application/octet-stream")
+    const contentType = file.type || "application/octet-stream";
+    api.getB2UploadUrl(file.name, contentType)
       .then(({ uploadUrl, key }) => {
         const xhr = new XMLHttpRequest();
         xhr.open("PUT", uploadUrl);
-        if (file.type) {
-          xhr.setRequestHeader("Content-Type", file.type);
-        }
+        xhr.setRequestHeader("Content-Type", contentType);
 
         if (xhr.upload && typeof onProgress === "function") {
           xhr.upload.onprogress = (e) => {

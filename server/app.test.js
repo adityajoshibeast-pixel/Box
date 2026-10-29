@@ -8,6 +8,8 @@ process.env.NODE_ENV = "test";
 const db = require("./db");
 
 db.publishDueItems = async () => [];
+db.listSections = async () => [{ id: "section-1", title: "Section" }];
+db.listSubsections = async () => [{ id: "subsection-1", title: "Subsection" }];
 db.listItems = async (_subsectionId, options = {}) =>
   options.includePrivate
     ? [{ id: "public-file" }, { id: "private-file", visibility: "private" }]
@@ -25,6 +27,26 @@ db.scheduleItem = async (id, publishAt) => {
 
 const app = require("./app");
 
+test("public navigation data is briefly CDN-cached", async (t) => {
+  const server = app.listen(0);
+  t.after(() => server.close());
+  const base = `http://127.0.0.1:${server.address().port}`;
+
+  const sections = await fetch(`${base}/api/sections`);
+  assert.equal(
+    sections.headers.get("cache-control"),
+    "public, s-maxage=10, stale-while-revalidate=30"
+  );
+  assert.deepEqual(await sections.json(), [{ id: "section-1", title: "Section" }]);
+
+  const subsections = await fetch(`${base}/api/sections/section-1/subsections`);
+  assert.equal(
+    subsections.headers.get("cache-control"),
+    "public, s-maxage=10, stale-while-revalidate=30"
+  );
+  assert.deepEqual(await subsections.json(), [{ id: "subsection-1", title: "Subsection" }]);
+});
+
 test("public feed never exposes private files, including with an admin cookie", async (t) => {
   const server = app.listen(0);
   t.after(() => server.close());
@@ -41,6 +63,7 @@ test("public feed never exposes private files, including with an admin cookie", 
   const publicResponse = await fetch(`${base}/api/subsections/sub-1/items`, {
     headers: { cookie },
   });
+  assert.equal(publicResponse.headers.get("cache-control"), "private, no-store");
   assert.deepEqual(await publicResponse.json(), [{ id: "public-file" }]);
 
   const privateItemResponse = await fetch(`${base}/api/items/private-file`, {

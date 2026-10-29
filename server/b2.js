@@ -28,14 +28,20 @@ async function getPresignedUploadUrl(key, contentType) {
 
 // The bucket stays PRIVATE (no payment-history requirement that way), so
 // reading a file back also needs a short-lived signed URL, generated fresh
-// on each request rather than stored permanently.
-async function getPresignedDownloadUrl(key, { download, filename } = {}) {
+// on each request rather than stored permanently. View responses include
+// browser-friendly headers so PDF viewers can render and cache range requests
+// without changing the bucket's private access policy.
+async function getPresignedDownloadUrl(key, { download, filename, contentType } = {}) {
   const command = new GetObjectCommand({
     Bucket: BUCKET,
     Key: key,
     ...(download
       ? { ResponseContentDisposition: `attachment; filename="${filename || key}"` }
-      : {}),
+      : {
+          ResponseContentDisposition: `inline; filename="${filename || key}"`,
+          ...(contentType ? { ResponseContentType: contentType } : {}),
+          ResponseCacheControl: "public, max-age=300",
+        }),
   });
   return getSignedUrl(client, command, { expiresIn: 3600 }); // 1 hour
 }

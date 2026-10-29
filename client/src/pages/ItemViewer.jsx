@@ -25,9 +25,13 @@ export default function ItemViewer() {
 
   const doDownload = async (savedName) => {
     try {
-      await api.logDownload(itemId, savedName);
-    } catch {
-      /* logging failure shouldn't block the actual download */
+      const res = await api.logDownload(itemId, savedName);
+      if (res?.downloadUrl) {
+        window.location.href = res.downloadUrl;
+        return;
+      }
+    } catch (e) {
+      console.warn("Download tracking warning:", e);
     }
     window.location.href = buildUrls(item).downloadUrl;
   };
@@ -73,6 +77,17 @@ export default function ItemViewer() {
     <div className="page viewer-shell">
       <TopBar title={item.title} backTo="/" />
       <div className="viewer-toolbar">
+        {item.type === "pdf" && (
+          <a
+            href={viewUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-ghost"
+            style={{ textDecoration: "none" }}
+          >
+            Open in New Tab ↗
+          </a>
+        )}
         <button className="btn btn-primary" onClick={handleDownloadClick}>
           Download
         </button>

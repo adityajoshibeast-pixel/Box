@@ -1,18 +1,22 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { Routes, Route, Link, useLocation } from "react-router-dom";
-import ViewerHome from "./pages/ViewerHome.jsx";
-import ViewerSection from "./pages/ViewerSection.jsx";
-import ViewerSubsection from "./pages/ViewerSubsection.jsx";
-import ItemViewer from "./pages/ItemViewer.jsx";
-import AdminLogin from "./pages/AdminLogin.jsx";
-import AdminDashboard from "./pages/AdminDashboard.jsx";
-import Unsubscribe from "./pages/Unsubscribe.jsx";
 import UpdateSignup from "./components/UpdateSignup.jsx";
 import {
   normalizeUsername,
   USERNAME_STORAGE_KEY,
   UserProfileContext,
 } from "./userProfile.jsx";
+
+// Keep the first download focused on the public entry screen. Each page is
+// fetched only when it is visited, so the admin tools and file viewer never
+// delay a visitor opening the menu.
+const ViewerHome = lazy(() => import("./pages/ViewerHome.jsx"));
+const ViewerSection = lazy(() => import("./pages/ViewerSection.jsx"));
+const ViewerSubsection = lazy(() => import("./pages/ViewerSubsection.jsx"));
+const ItemViewer = lazy(() => import("./pages/ItemViewer.jsx"));
+const AdminLogin = lazy(() => import("./pages/AdminLogin.jsx"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard.jsx"));
+const Unsubscribe = lazy(() => import("./pages/Unsubscribe.jsx"));
 
 export default function App() {
   const location = useLocation();
@@ -42,16 +46,18 @@ export default function App() {
       value={{ username, requestUsernameChange: () => setEditingUsername(true) }}
     >
       <div className="app">
-        <Routes>
-          <Route path="/" element={<ViewerHome />} />
-          <Route path="/s/:sectionId" element={<ViewerSection />} />
-          <Route path="/s/:sectionId/ss/:subsectionId" element={<ViewerSubsection />} />
-          <Route path="/item/:itemId" element={<ItemViewer />} />
-          <Route path="/admin/login" element={<AdminLogin />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/unsubscribe" element={<Unsubscribe />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <Suspense fallback={<PageLoading />}>
+          <Routes>
+            <Route path="/" element={<ViewerHome />} />
+            <Route path="/s/:sectionId" element={<ViewerSection />} />
+            <Route path="/s/:sectionId/ss/:subsectionId" element={<ViewerSubsection />} />
+            <Route path="/item/:itemId" element={<ItemViewer />} />
+            <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/unsubscribe" element={<Unsubscribe />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
         {!isAdmin && !isUnsubscribe && <UpdateSignup />}
         {needsUsername && editingUsername && (
           <UsernameGate
@@ -64,6 +70,10 @@ export default function App() {
       </div>
     </UserProfileContext.Provider>
   );
+}
+
+function PageLoading() {
+  return <div className="page"><p className="hint">Loading…</p></div>;
 }
 
 function UsernameGate({ initialValue = "", onSave, onCancel, modal = false }) {

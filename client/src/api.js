@@ -21,9 +21,9 @@ async function request(path, options = {}) {
 
 export const api = {
   // public
-  getSections: () => request("/sections"),
+  getSections: (options) => request("/sections", options),
   getSection: (id) => request(`/sections/${id}`),
-  getSubsections: (sectionId) => request(`/sections/${sectionId}/subsections`),
+  getSubsections: (sectionId, options) => request(`/sections/${sectionId}/subsections`, options),
   getSubsection: (id) => request(`/subsections/${id}`),
   getItems: (subsectionId) => request(`/subsections/${subsectionId}/items`),
   getItem: (id) => request(`/items/${id}`),

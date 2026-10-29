@@ -25,6 +25,11 @@ const app = express();
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "change-me";
 const IS_PROD = process.env.NODE_ENV === "production";
 
+// Small CDN caches make repeat navigation fast without materially delaying
+// editorial changes. Item feeds deliberately remain uncached below because
+// their visibility can change on a schedule.
+const PUBLIC_NAVIGATION_CACHE = "public, s-maxage=10, stale-while-revalidate=30";
+
 // --------------------------------------------------
 // Middleware
 // --------------------------------------------------
@@ -169,9 +174,11 @@ app.post("/api/admin/b2/presign", requireAdmin, async (req, res) => {
 
 app.get("/api/sections", async (req, res, next) => {
   try {
-    await publishDueScheduledItems(req);
+    publishDueScheduledItems(req).catch((err) =>
+      console.error("Background scheduled publish check failed:", err)
+    );
     const sections = await db.listSections();
-
+    res.set("Cache-Control", PUBLIC_NAVIGATION_CACHE);
     res.json(sections);
   } catch (err) {
     next(err);
@@ -183,7 +190,7 @@ app.get("/api/sections/:id/subsections", async (req, res, next) => {
     const subsections = await db.listSubsections(
       req.params.id
     );
-
+    res.set("Cache-Control", PUBLIC_NAVIGATION_CACHE);
     res.json(subsections);
   } catch (err) {
     next(err);
@@ -214,9 +221,10 @@ app.get("/api/subsections/:id", async (req, res, next) => {
 
 app.get("/api/subsections/:id/items", async (req, res, next) => {
   try {
-    // This endpoint powers the public viewer. Even an admin cookie must not
-    // reveal private or not-yet-due scheduled files here.
-    await publishDueScheduledItems(req);
+    // Non-blocking background check so visitor response is served instantly
+    publishDueScheduledItems(req).catch((err) =>
+      console.error("Background scheduled publish check failed:", err)
+    );
     const items = await db.listItems(req.params.id);
 
     res.set("Cache-Control", "private, no-store");
@@ -242,6 +250,22 @@ app.get("/api/items/:id", async (req, res, next) => {
   }
 });
 
+function getItemContentType(item) {
+  if (!item) return undefined;
+  if (item.type === "pdf") return "application/pdf";
+  if (item.type === "mp4" || item.type === "video") return "video/mp4";
+  if (item.type === "img") {
+    const name = String(item.original_name || item.key || "").toLowerCase();
+    if (name.endsWith(".png")) return "image/png";
+    if (name.endsWith(".jpg") || name.endsWith(".jpeg")) return "image/jpeg";
+    if (name.endsWith(".webp")) return "image/webp";
+    if (name.endsWith(".svg")) return "image/svg+xml";
+    if (name.endsWith(".gif")) return "image/gif";
+    return "image/jpeg";
+  }
+  return undefined;
+}
+
 // B2's bucket stays private, so every view/download needs a freshly-signed
 // URL — this route generates one and redirects to it. Public, no auth
 // needed (same as viewing the item itself).
@@ -252,12 +276,35 @@ app.get("/api/items/:id/open", async (req, res, next) => {
     const url = await getPresignedDownloadUrl(item.key, {
       download: req.query.download === "1",
       filename: item.original_name,
+      contentType: getItemContentType(item),
     });
+    // The redirect itself is safe to reuse briefly in this browser: the
+    // target remains signed for one hour and the item is already public.
+    if (req.query.download !== "1") {
+      res.set("Cache-Control", "private, max-age=300");
+    }
     res.redirect(url);
   } catch (err) {
     next(err);
   }
 });
+
+async function resolveDownloadUrl(item) {
+  if (item.provider === "b2") {
+    const presigned = await getPresignedDownloadUrl(item.key, {
+      download: true,
+      filename: item.original_name,
+      contentType: getItemContentType(item),
+    });
+    return new URL(presigned);
+  }
+  const target = item.download_url || item.file_url;
+  const downloadUrl = new URL(target);
+  if (!["http:", "https:"].includes(downloadUrl.protocol)) {
+    throw new Error("Unsupported download URL");
+  }
+  return downloadUrl;
+}
 
 app.post("/api/items/:id/download", async (req, res, next) => {
   try {
@@ -268,35 +315,44 @@ app.post("/api/items/:id/download", async (req, res, next) => {
     }
 
     let downloadUrl;
-    if (item.provider === "b2") {
-      try {
-        const presigned = await getPresignedDownloadUrl(item.key, {
-          download: true,
-          filename: item.original_name,
-        });
-        downloadUrl = new URL(presigned);
-      } catch (b2Err) {
-        console.error("B2 presigned download error:", b2Err.message);
-        return res.status(404).json({ error: "Download is unavailable" });
-      }
-    } else {
-      const target = item.download_url || item.file_url;
-      try {
-        downloadUrl = new URL(target);
-        if (!["http:", "https:"].includes(downloadUrl.protocol)) {
-          throw new Error("Unsupported download URL");
-        }
-      } catch {
-        return res.status(404).json({ error: "Download is unavailable" });
-      }
+    try {
+      downloadUrl = await resolveDownloadUrl(item);
+    } catch (resolveErr) {
+      console.error("Resolve download error:", resolveErr.message);
+      return res.status(404).json({ error: "Download is unavailable" });
     }
 
-    try {
-      await sendDownloadNotification({ db, req, item });
-    } catch (notificationError) {
-      // Email-provider problems must never stop the requested download.
+    // Send owner notification in background so download starts in milliseconds
+    sendDownloadNotification({ db, req, item }).catch((notificationError) => {
       console.error("Download notification failed:", notificationError);
+    });
+
+    res.set("Cache-Control", "private, no-store");
+    return res.json({ ok: true, downloadUrl: downloadUrl.toString() });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.get("/api/items/:id/download", async (req, res, next) => {
+  try {
+    const item = await db.getItem(req.params.id);
+
+    if (!item || !["pdf", "img", "mp4", "video"].includes(item.type)) {
+      return res.status(404).json({ error: "File not found" });
     }
+
+    let downloadUrl;
+    try {
+      downloadUrl = await resolveDownloadUrl(item);
+    } catch (resolveErr) {
+      console.error("Resolve download error:", resolveErr.message);
+      return res.status(404).json({ error: "Download is unavailable" });
+    }
+
+    sendDownloadNotification({ db, req, item }).catch((notificationError) => {
+      console.error("Download notification failed:", notificationError);
+    });
 
     res.set("Cache-Control", "private, no-store");
     return res.redirect(302, downloadUrl.toString());
@@ -537,7 +593,9 @@ admin.post(
 
 admin.get("/subsections/:id/items", async (req, res, next) => {
   try {
-    await publishDueScheduledItems(req);
+    publishDueScheduledItems(req).catch((err) =>
+      console.error("Admin background publish check failed:", err)
+    );
     const items = await db.listItems(req.params.id, { includePrivate: true });
     res.set("Cache-Control", "private, no-store");
     res.json(items);

@@ -12,7 +12,9 @@ export default function AdminDashboard() {
 
   const loadSections = useCallback(async () => {
     try {
-      const data = await api.getSections();
+      // Public navigation responses are CDN-cached briefly. The admin must
+      // always see the current database state immediately after an edit.
+      const data = await api.getSections({ cache: "no-store" });
       setSections(data || []);
     } catch (err) {
       console.error("Failed to load sections in admin:", err);
@@ -109,7 +111,7 @@ function SectionBlock({ section, isOpen, onToggle, onChanged, openSubsection, se
   const [subsections, setSubsections] = useState([]);
 
   const loadSubs = useCallback(async () => {
-    setSubsections(await api.getSubsections(section.id));
+    setSubsections(await api.getSubsections(section.id, { cache: "no-store" }));
   }, [section.id]);
 
   useEffect(() => {
