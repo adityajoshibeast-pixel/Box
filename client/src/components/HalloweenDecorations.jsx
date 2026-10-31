@@ -248,6 +248,17 @@ export default function HalloweenDecorations() {
         <span className="fog-particle fp-4" />
         <span className="fog-particle fp-5" />
       </div>
+
+      <div className="halloween-tree-line" aria-hidden="true">
+        <span className="halloween-tree tree-left" />
+        <span className="halloween-tree tree-mid" />
+        <span className="halloween-tree tree-right" />
+      </div>
+      <div className="halloween-ground" aria-hidden="true">
+        <span className="scene-pumpkin scene-pumpkin-one"><span>◕‿◕</span></span>
+        <span className="scene-pumpkin scene-pumpkin-two"><span>◡‿◡</span></span>
+        <span className="scene-pumpkin scene-pumpkin-three"><span>◕ᴗ◕</span></span>
+      </div>
     </div>
   );
 }

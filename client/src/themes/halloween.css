@@ -24,12 +24,234 @@
   min-height: 100vh;
   position: relative;
   overflow-x: hidden;
+  isolation: isolate;
   background:
     radial-gradient(circle at 82% 12%, rgba(255, 117, 24, 0.16) 0%, transparent 45%),
     radial-gradient(circle at 18% 28%, rgba(157, 78, 221, 0.18) 0%, transparent 50%),
     radial-gradient(circle at 50% 90%, rgba(204, 82, 0, 0.15) 0%, transparent 60%),
     linear-gradient(180deg, #090514 0%, #130a24 50%, #0d071a 100%);
   color: var(--hw-ghost-white);
+}
+
+/* Reference-scene framing: a warm moon behind a deep blue-violet sky. */
+.viewer-shell::before {
+  content: "";
+  position: fixed;
+  z-index: -2;
+  top: 72px;
+  left: 50%;
+  width: min(36vw, 390px);
+  aspect-ratio: 1;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 32%, rgba(255, 246, 190, 0.96) 0 4%, transparent 5%),
+    radial-gradient(circle at 65% 58%, rgba(180, 92, 38, 0.24) 0 6%, transparent 7%),
+    radial-gradient(circle at 46% 68%, rgba(180, 92, 38, 0.18) 0 10%, transparent 11%),
+    radial-gradient(circle, #ffd875 0%, #ffad31 56%, #d35c1c 100%);
+  box-shadow: 0 0 35px 10px rgba(255, 170, 55, 0.34), 0 0 130px 30px rgba(255, 104, 27, 0.16);
+  opacity: 0;
+}
+
+.viewer-shell::after {
+  content: "";
+  position: fixed;
+  z-index: -1;
+  inset: 42% -10% 0;
+  background: linear-gradient(165deg, transparent 0 22%, rgba(7, 5, 18, 0.8) 22.2% 23%, transparent 23.2%),
+    linear-gradient(180deg, transparent 0 40%, rgba(4, 4, 13, 0.94) 72%);
+  pointer-events: none;
+}
+
+.viewer-shell.page {
+  position: relative;
+  z-index: 2;
+  max-width: 1080px;
+  padding-top: 30px;
+}
+
+.viewer-shell .topbar {
+  padding: 9px 14px;
+  margin: 0 -2px 34px;
+  border: 1px solid rgba(255, 160, 56, 0.16);
+  border-radius: 18px;
+  background: rgba(10, 7, 24, 0.58);
+  box-shadow: 0 18px 45px -30px rgba(0, 0, 0, 0.9), inset 0 1px rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(14px);
+}
+
+.viewer-shell .halloween-moon {
+  top: 58px;
+  left: 50%;
+  right: auto;
+  width: min(52vw, 560px);
+  height: min(52vw, 560px);
+  transform: translateX(-50%);
+  opacity: 0.88;
+  animation: moon-rise 1.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+  box-shadow: 0 0 42px 12px rgba(255, 215, 102, 0.48), 0 0 150px 46px rgba(255, 117, 24, 0.2);
+}
+
+@keyframes moon-rise {
+  from { transform: translate(-50%, 180px) scale(0.82); opacity: 0; }
+  to { transform: translate(-50%, 0) scale(1); opacity: 0.88; }
+}
+
+.hero-copy {
+  width: min(680px, 100%);
+  margin: clamp(48px, 10vh, 105px) auto 42px;
+  text-align: center;
+  text-wrap: balance;
+}
+
+.hero-kicker {
+  margin: 0 0 10px;
+  color: #ffc47c;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-shadow: 0 0 14px rgba(255, 137, 39, 0.52);
+}
+
+.hero-copy h2 {
+  margin: 0;
+  color: #fff4df;
+  font: 800 clamp(36px, 6vw, 72px)/0.98 "Creepster", "Manrope", sans-serif;
+  letter-spacing: 0.025em;
+  text-shadow: 0 5px 0 rgba(46, 17, 13, 0.7), 0 0 26px rgba(255, 118, 32, 0.4);
+}
+
+.hero-copy h2 span {
+  display: block;
+  color: #ff8625;
+  font-size: 1.12em;
+  text-shadow: 0 0 12px rgba(255, 118, 32, 0.78), 0 4px 0 rgba(93, 24, 13, 0.7);
+}
+
+.hero-copy > p:last-child {
+  max-width: 520px;
+  margin: 18px auto 0;
+  color: #d9c8df;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.viewer-shell .button-grid {
+  position: relative;
+  max-width: 900px;
+  margin: 0 auto;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.viewer-shell .menu-btn {
+  min-height: 84px;
+  justify-content: center;
+  padding: 20px 22px;
+  border-radius: 13px 17px 12px 16px;
+  background: linear-gradient(145deg, rgba(66, 29, 39, 0.96), rgba(22, 13, 35, 0.97));
+  box-shadow: 0 14px 24px -13px #000, inset 0 1px rgba(255, 218, 169, 0.12);
+}
+
+.viewer-shell .menu-btn:nth-child(2n) {
+  background: linear-gradient(145deg, rgba(32, 31, 64, 0.96), rgba(18, 12, 38, 0.97));
+}
+
+.viewer-shell .menu-btn::after {
+  content: "✦";
+  position: absolute;
+  right: 15px;
+  top: 12px;
+  color: rgba(255, 184, 86, 0.65);
+  font-size: 13px;
+  animation: star-twinkle 2.8s ease-in-out infinite;
+}
+
+@keyframes star-twinkle {
+  0%, 100% { opacity: 0.25; transform: scale(0.8) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1.2) rotate(20deg); }
+}
+
+/* Silhouette trees sway gently instead of using a heavy image layer. */
+.halloween-tree-line {
+  position: fixed;
+  z-index: 1;
+  inset: auto 0 0;
+  height: 240px;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.halloween-tree {
+  position: absolute;
+  bottom: -42px;
+  width: 145px;
+  height: 220px;
+  transform-origin: 50% 100%;
+  background: #080613;
+  clip-path: polygon(48% 0, 55% 24%, 83% 33%, 65% 41%, 100% 56%, 68% 57%, 88% 74%, 60% 70%, 72% 100%, 28% 100%, 40% 71%, 10% 77%, 31% 56%, 0 58%, 34% 40%, 15% 34%, 43% 24%);
+  filter: drop-shadow(0 0 11px rgba(13, 3, 26, 0.9));
+  animation: tree-sway 6s ease-in-out infinite;
+}
+
+.tree-left { left: -12px; height: 250px; animation-delay: -1.5s; }
+.tree-mid { left: 34%; height: 145px; width: 100px; opacity: 0.72; animation-duration: 7.5s; }
+.tree-right { right: -18px; height: 290px; width: 170px; animation-delay: -3.2s; }
+
+@keyframes tree-sway {
+  0%, 100% { transform: rotate(-1deg); }
+  50% { transform: rotate(1.8deg); }
+}
+
+.halloween-ground {
+  position: fixed;
+  z-index: 3;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 128px;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent, rgba(5, 4, 12, 0.7) 32%, #07050e 78%);
+}
+
+.scene-pumpkin {
+  position: absolute;
+  bottom: 19px;
+  display: grid;
+  place-items: center;
+  width: 80px;
+  height: 62px;
+  border-radius: 46% 46% 42% 42%;
+  color: #2a0710;
+  font: 800 12px/1 "Trebuchet MS", sans-serif;
+  letter-spacing: -0.08em;
+  background: radial-gradient(ellipse at 50% 35%, #ffb038 0 15%, #ef6c1d 55%, #8f2d16 100%);
+  box-shadow: 0 5px 0 #5b1d16, 0 0 24px rgba(255, 121, 29, 0.38);
+  animation: pumpkin-hop 4.2s ease-in-out infinite;
+}
+
+.scene-pumpkin::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  width: 12px;
+  height: 14px;
+  border-radius: 60% 20%;
+  background: #58773e;
+  transform: rotate(18deg);
+}
+
+.scene-pumpkin span { text-shadow: 0 0 7px #ffdd67; }
+.scene-pumpkin-one { left: 8%; transform: scale(1.12); }
+.scene-pumpkin-two { left: 48%; bottom: 12px; transform: scale(0.72); animation-delay: -1.8s; }
+.scene-pumpkin-three { right: 8%; transform: scale(0.94); animation-delay: -3s; }
+
+@keyframes pumpkin-hop {
+  0%, 72%, 100% { translate: 0 0; rotate: 0deg; }
+  78% { translate: 0 -12px; rotate: -3deg; }
+  84% { translate: 0 0; rotate: 3deg; }
+  90% { translate: 0 -6px; rotate: -1deg; }
 }
 
 /* Spooky TopBar */
@@ -330,7 +552,7 @@
   position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 20;
+  z-index: 1;
   overflow: hidden;
 }
 
@@ -645,6 +867,35 @@
 
 /* Responsive adjustments for mobile screens */
 @media (max-width: 640px) {
+  .viewer-shell .halloween-moon {
+    top: 74px;
+    width: 280px;
+    height: 280px;
+  }
+
+  .viewer-shell.page {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .hero-copy {
+    margin-top: 52px;
+  }
+
+  .halloween-tree-line {
+    height: 170px;
+  }
+
+  .halloween-tree {
+    transform: scale(0.72);
+    transform-origin: bottom center;
+  }
+
+  .scene-pumpkin {
+    width: 62px;
+    height: 49px;
+  }
+
   .halloween-moon {
     width: 80px;
     height: 80px;
@@ -683,6 +934,115 @@
   }
 }
 
+/* --------------------------------------------------------------------------
+   Purple graveyard palette inspired by the supplied reference
+   -------------------------------------------------------------------------- */
+body {
+  background:
+    radial-gradient(ellipse at 50% 8%, rgba(206, 128, 220, 0.5), transparent 27%),
+    radial-gradient(ellipse at 50% 42%, rgba(115, 57, 150, 0.38), transparent 54%),
+    linear-gradient(180deg, #32194d 0%, #1a1030 48%, #080817 100%);
+}
+
+.viewer-shell.page {
+  color: #f2e8ff;
+}
+
+.viewer-shell .topbar {
+  border-color: rgba(213, 154, 255, 0.22);
+  background: rgba(14, 9, 28, 0.7);
+}
+
+.viewer-shell .topbar-title {
+  color: #f4c9ff;
+  text-shadow: 0 0 16px rgba(224, 151, 255, 0.52), 2px 2px 0 #130b24;
+}
+
+.viewer-shell .admin-link,
+.viewer-shell .back-link {
+  border-color: rgba(224, 174, 255, 0.34);
+  color: #f1cfff;
+}
+
+.viewer-shell .admin-link:hover,
+.viewer-shell .back-link:hover {
+  color: #fff;
+  border-color: #e7a8ff;
+}
+
+.hero-kicker {
+  color: #e5b7ff;
+  text-shadow: 0 0 14px rgba(222, 157, 255, 0.7);
+}
+
+.hero-copy h2 {
+  color: #f7eaff;
+  text-shadow: 0 4px 0 rgba(27, 12, 45, 0.85), 0 0 24px rgba(229, 171, 255, 0.4);
+}
+
+.hero-copy h2 span {
+  color: #f0b4f8;
+  text-shadow: 0 0 18px rgba(238, 143, 255, 0.7), 0 4px 0 #34144c;
+}
+
+.hero-copy > p:last-child,
+.viewer-shell .hint {
+  color: #d2c1e3;
+}
+
+.viewer-shell .menu-btn {
+  border-color: rgba(212, 154, 250, 0.28);
+  background: linear-gradient(145deg, rgba(44, 24, 70, 0.94), rgba(17, 12, 35, 0.98));
+  box-shadow: 0 12px 25px -15px #020107, inset 0 1px rgba(244, 211, 255, 0.1);
+}
+
+.viewer-shell .menu-btn:nth-child(2n) {
+  background: linear-gradient(145deg, rgba(34, 25, 69, 0.96), rgba(14, 12, 35, 0.98));
+}
+
+.viewer-shell .menu-btn:hover,
+.viewer-shell .menu-btn:focus-visible {
+  border-color: #e7a8ff;
+  box-shadow: 0 15px 28px -15px #000, 0 0 24px -10px #d783ff;
+}
+
+.viewer-shell .menu-btn-tag {
+  color: #ceb0e8;
+}
+
+.viewer-shell .halloween-moon {
+  top: 92px;
+  width: 168px;
+  height: 168px;
+  background: radial-gradient(circle at 36% 32%, #fff0fb 0%, #f9c6e9 48%, #d98ac8 100%);
+  box-shadow: 0 0 25px 8px rgba(255, 199, 235, 0.55), 0 0 70px 20px rgba(212, 125, 223, 0.3);
+}
+
+.moon-crater {
+  background: rgba(170, 93, 168, 0.16);
+}
+
+.viewer-shell .watermark {
+  border-color: rgba(215, 166, 255, 0.28);
+  background: rgba(15, 9, 29, 0.78);
+}
+
+.watermark-name { color: #e5b5ff; text-shadow: 0 0 8px rgba(207, 133, 255, 0.5); }
+.watermark-link { color: #bfa9de; }
+
+.scene-pumpkin {
+  background: radial-gradient(ellipse at 50% 35%, #bd75d6 0 15%, #713d9e 56%, #2d174b 100%);
+  box-shadow: 0 5px 0 #241136, 0 0 24px rgba(201, 119, 255, 0.42);
+}
+
+@media (max-width: 640px) {
+  .viewer-shell .halloween-moon {
+    top: 90px;
+    width: 118px;
+    height: 118px;
+  }
+}
+
 /* Accessibility: respect user preferences for reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .halloween-witch,
@@ -694,7 +1054,10 @@
   .pumpkin-carved-face,
   .halloween-pumpkin,
   .wing-left,
-  .wing-right {
+  .wing-right,
+  .halloween-tree,
+  .scene-pumpkin,
+  .viewer-shell .menu-btn::after {
     animation: none !important;
   }
 }
@@ -725,4 +1088,393 @@
   45% { transform: rotate(-4deg) scale(1.03); }
   60% { transform: rotate(4deg) scale(1.03); }
   75% { transform: rotate(0deg) scale(1); }
+}
+
+/* --------------------------------------------------------------------------
+   Final cohesive dark layout
+   -------------------------------------------------------------------------- */
+body {
+  background: #070611;
+}
+
+.viewer-shell .watermark {
+  position: fixed;
+  left: auto;
+  right: 18px;
+  bottom: 16px;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  width: auto;
+  padding: 8px 11px;
+  border-radius: 10px;
+  text-align: right;
+  opacity: 0.82;
+}
+
+.viewer-shell .watermark-name,
+.viewer-shell .watermark-link {
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.viewer-shell.page {
+  width: 100%;
+  max-width: none;
+  min-height: 100vh;
+  margin: 0;
+  padding: 24px clamp(16px, 4vw, 72px) 150px;
+  /* Keep the scene layer visible; the global body supplies the dark base. */
+  background: transparent;
+}
+
+.viewer-shell.page > .topbar,
+.viewer-shell.page > .hero-copy,
+.viewer-shell.page > .button-grid {
+  width: min(1160px, 100%);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.viewer-shell .topbar {
+  margin-top: 0;
+  margin-bottom: 22px;
+  padding: 10px 14px;
+  border-color: rgba(255, 146, 48, 0.22);
+  background: rgba(10, 8, 22, 0.86);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.34), inset 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.viewer-shell .topbar-title {
+  font-size: clamp(24px, 3vw, 34px);
+  color: #ffad45;
+}
+
+.viewer-shell .admin-link,
+.viewer-shell .back-link {
+  font-size: 13px;
+}
+
+.hero-copy {
+  margin-top: 18px;
+  margin-bottom: 24px;
+  text-align: left;
+}
+
+.hero-copy h2 {
+  max-width: 670px;
+  font-size: clamp(34px, 5vw, 58px);
+}
+
+.hero-copy h2 span {
+  display: inline;
+  margin-left: 8px;
+}
+
+.hero-copy > p:last-child {
+  margin: 12px 0 0;
+  max-width: 600px;
+  font-size: 14px;
+}
+
+.viewer-shell .button-grid {
+  align-items: stretch;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 12px;
+}
+
+.viewer-shell .menu-btn {
+  min-height: 66px;
+  justify-content: space-between;
+  padding: 16px 19px;
+  border: 1px solid rgba(255, 145, 46, 0.22);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(32, 22, 51, 0.96), rgba(15, 12, 30, 0.98));
+  box-shadow: 0 10px 24px -16px #000, inset 0 1px rgba(255, 255, 255, 0.07);
+}
+
+.viewer-shell .menu-btn:hover,
+.viewer-shell .menu-btn:focus-visible {
+  border-color: #ff9b37;
+  box-shadow: 0 14px 28px -15px #000, 0 0 20px -10px #ff8d28;
+  transform: translateY(-2px);
+  outline: none;
+}
+
+.viewer-shell .menu-btn-tag {
+  font-size: 10px;
+  color: #bcaecc;
+}
+
+@media (max-width: 640px) {
+  .viewer-shell.page {
+    padding: 14px 12px 120px;
+  }
+
+  .viewer-shell .watermark {
+    right: 10px;
+    bottom: 10px;
+  }
+
+  .viewer-shell .topbar {
+    margin-bottom: 18px;
+  }
+
+  .hero-copy {
+    margin-top: 16px;
+    margin-bottom: 18px;
+  }
+
+  .hero-copy h2 span {
+    display: block;
+    margin-left: 0;
+  }
+}
+
+/* Final palette pass: purple twilight graveyard rather than orange-heavy UI. */
+:root {
+  --bg: #080817;
+  --panel: #151027;
+  --border: rgba(215, 166, 255, 0.24);
+  --text: #f3e9ff;
+  --muted: #b7a7ca;
+  --accent: #c879ef;
+  --accent-dark: #9d52c9;
+  --danger: #ff7d9d;
+}
+
+body {
+  background:
+    radial-gradient(ellipse at 50% 8%, rgba(206, 128, 220, 0.5), transparent 27%),
+    radial-gradient(ellipse at 50% 42%, rgba(115, 57, 150, 0.38), transparent 54%),
+    linear-gradient(180deg, #32194d 0%, #1a1030 48%, #080817 100%);
+}
+
+.login-page,
+.admin-page,
+.unsubscribe-page {
+  color: #f3e9ff;
+}
+
+.login-card,
+.tree-node,
+.item-form,
+.unsubscribe-card {
+  border-color: rgba(215, 166, 255, 0.24);
+  background: rgba(16, 11, 32, 0.94);
+  color: #f3e9ff;
+  box-shadow: 0 18px 48px -24px #000, inset 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.login-card input,
+.inline-form input,
+.item-form input,
+.item-form select,
+.schedule-select {
+  border-color: rgba(215, 166, 255, 0.26);
+  background: #0d0a1e;
+  color: #f3e9ff;
+}
+
+.viewer-shell .topbar {
+  border-color: rgba(213, 154, 255, 0.22);
+  background: rgba(14, 9, 28, 0.7);
+}
+
+.viewer-shell .topbar-title { color: #f4c9ff; text-shadow: 0 0 16px rgba(224, 151, 255, 0.52), 2px 2px 0 #130b24; }
+.viewer-shell .admin-link,
+.viewer-shell .back-link { border-color: rgba(224, 174, 255, 0.34); color: #f1cfff; }
+.viewer-shell .admin-link:hover,
+.viewer-shell .back-link:hover { color: #fff; border-color: #e7a8ff; }
+.hero-kicker { color: #e5b7ff; text-shadow: 0 0 14px rgba(222, 157, 255, 0.7); }
+.hero-copy h2 { color: #f7eaff; text-shadow: 0 4px 0 rgba(27, 12, 45, 0.85), 0 0 24px rgba(229, 171, 255, 0.4); }
+.hero-copy h2 span { color: #f0b4f8; text-shadow: 0 0 18px rgba(238, 143, 255, 0.7), 0 4px 0 #34144c; }
+.hero-copy > p:last-child,
+.viewer-shell .hint { color: #d2c1e3; }
+
+.viewer-shell .menu-btn {
+  border-color: rgba(212, 154, 250, 0.28);
+  background: linear-gradient(145deg, rgba(44, 24, 70, 0.94), rgba(17, 12, 35, 0.98));
+  box-shadow: 0 12px 25px -15px #020107, inset 0 1px rgba(244, 211, 255, 0.1);
+}
+.viewer-shell .menu-btn:nth-child(2n) { background: linear-gradient(145deg, rgba(34, 25, 69, 0.96), rgba(14, 12, 35, 0.98)); }
+.viewer-shell .menu-btn:hover,
+.viewer-shell .menu-btn:focus-visible { border-color: #e7a8ff; box-shadow: 0 15px 28px -15px #000, 0 0 24px -10px #d783ff; }
+.viewer-shell .menu-btn-tag { color: #ceb0e8; }
+
+.viewer-shell .halloween-moon {
+  top: 92px;
+  width: 168px;
+  height: 168px;
+  background: radial-gradient(circle at 36% 32%, #fff0fb 0%, #f9c6e9 48%, #d98ac8 100%);
+  box-shadow: 0 0 25px 8px rgba(255, 199, 235, 0.55), 0 0 70px 20px rgba(212, 125, 223, 0.3);
+}
+.moon-crater { background: rgba(170, 93, 168, 0.16); }
+.scene-pumpkin { background: radial-gradient(ellipse at 50% 35%, #bd75d6 0 15%, #713d9e 56%, #2d174b 100%); box-shadow: 0 5px 0 #241136, 0 0 24px rgba(201, 119, 255, 0.42); }
+
+@media (max-width: 640px) {
+  .viewer-shell .halloween-moon { top: 90px; width: 118px; height: 118px; }
+}
+
+/* Readability and polish pass: keep the entire viewer dark and calm. */
+.viewer-shell.page {
+  background: linear-gradient(180deg, rgba(30, 17, 49, 0.72) 0%, rgba(13, 9, 27, 0.78) 58%, rgba(6, 6, 16, 0.86) 100%) !important;
+}
+
+.viewer-shell::after {
+  display: none;
+}
+
+.viewer-shell .topbar-title,
+.hero-copy h2,
+.hero-copy h2 span,
+.username-card h1,
+.name-card h3 {
+  font-family: "Manrope", system-ui, sans-serif;
+  letter-spacing: -0.035em;
+}
+
+.viewer-shell .topbar-title {
+  font-weight: 800;
+  text-shadow: 0 2px 12px rgba(216, 142, 255, 0.38);
+}
+
+.hero-copy h2 {
+  font-weight: 800;
+  line-height: 1.04;
+  text-shadow: 0 2px 18px rgba(219, 157, 255, 0.25);
+}
+
+.hero-copy h2 span {
+  font-weight: 800;
+  text-shadow: 0 2px 18px rgba(238, 143, 255, 0.38);
+}
+
+.viewer-shell .halloween-moon {
+  z-index: -1;
+  opacity: 0.55;
+}
+
+.viewer-shell .update-signup-pill {
+  border-color: rgba(215, 166, 255, 0.28);
+  background: rgba(16, 10, 31, 0.92);
+  color: #e4c8f5;
+  box-shadow: 0 9px 24px -9px #000, 0 0 18px -10px #d783ff;
+}
+
+.viewer-shell .update-signup-pill span {
+  color: #e8a7ff;
+}
+
+.viewer-shell .watermark {
+  position: fixed !important;
+  left: auto !important;
+  right: 18px !important;
+  bottom: 16px !important;
+  width: max-content !important;
+  max-width: calc(100vw - 36px);
+  margin: 0 !important;
+  white-space: nowrap;
+}
+
+.viewer-shell .witch-svg {
+  transform: scaleY(-1);
+}
+
+/* Large rising moon + spooky display type, while keeping supporting text clean. */
+.viewer-shell .halloween-moon {
+  top: 72px;
+  width: min(46vw, 500px);
+  height: min(46vw, 500px);
+  z-index: 0;
+  opacity: 0.7;
+  box-shadow: 0 0 38px 12px rgba(255, 199, 235, 0.48), 0 0 130px 34px rgba(212, 125, 223, 0.28);
+}
+
+.viewer-shell .topbar-title,
+.hero-copy h2,
+.hero-copy h2 span {
+  font-family: "Creepster", "Trebuchet MS", cursive;
+  font-weight: 400;
+  letter-spacing: 0.025em;
+}
+
+.viewer-shell .topbar-title {
+  font-size: clamp(28px, 3.5vw, 40px);
+  color: #f6d4ff;
+  text-shadow: 0 2px 0 #241033, 0 0 18px rgba(232, 153, 255, 0.62);
+}
+
+.hero-copy h2 {
+  font-size: clamp(42px, 6vw, 76px);
+  line-height: 0.98;
+  color: #fff0ff;
+  text-shadow: 0 3px 0 #2e1248, 0 0 24px rgba(239, 175, 255, 0.48);
+}
+
+.hero-copy h2 span {
+  color: #f1b7fa;
+  text-shadow: 0 3px 0 #3e1555, 0 0 22px rgba(229, 137, 255, 0.65);
+}
+
+@media (max-width: 640px) {
+  .viewer-shell .halloween-moon {
+    top: 86px;
+    width: 270px;
+    height: 270px;
+  }
+
+  .viewer-shell .watermark {
+    right: 10px !important;
+    bottom: 10px !important;
+    max-width: calc(100vw - 20px);
+  }
+}
+
+/* Reliable page-level moon layer: visible behind content regardless of the
+   decoration stacking context. */
+.viewer-shell.page {
+  position: relative;
+  overflow: hidden;
+}
+
+.viewer-shell.page::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  top: 74px;
+  left: 50%;
+  width: min(46vw, 500px);
+  aspect-ratio: 1;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 30%, rgba(255, 240, 251, 0.98) 0 3%, transparent 4%),
+    radial-gradient(circle at 67% 60%, rgba(170, 93, 168, 0.17) 0 5%, transparent 6%),
+    radial-gradient(circle at 44% 70%, rgba(170, 93, 168, 0.13) 0 8%, transparent 9%),
+    radial-gradient(circle, #fff0fb 0%, #f9c6e9 48%, #d98ac8 100%);
+  box-shadow: 0 0 42px 14px rgba(255, 199, 235, 0.48), 0 0 140px 38px rgba(212, 125, 223, 0.3);
+  opacity: 0.72;
+  animation: moon-rise 1.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+  pointer-events: none;
+}
+
+.viewer-shell.page > * {
+  position: relative;
+  z-index: 2;
+}
+
+@media (max-width: 640px) {
+  .viewer-shell.page::before {
+    top: 88px;
+    width: 280px;
+  }
+}
+
+/* Moon removed per design preference; keep the purple night atmosphere. */
+.viewer-shell.page::before,
+.viewer-shell .halloween-moon {
+  display: none !important;
 }

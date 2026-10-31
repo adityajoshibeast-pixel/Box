@@ -14,6 +14,11 @@ export default function ViewerHome() {
   return (
     <div className="page viewer-shell">
       <TopBar title="Resource Navigator" />
+      <section className="hero-copy" aria-labelledby="welcome-title">
+        <p className="hero-kicker">A curious little corner of the night</p>
+        <h2 id="welcome-title">Welcome to the <span>Resource Castle</span></h2>
+        <p>Follow the lanterns, choose a chapter, and discover something useful beneath the moon.</p>
+      </section>
       <div className="button-grid">
         {sections === null ? (
           <p className="hint">Loading…</p>
