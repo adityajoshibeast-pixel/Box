@@ -4,7 +4,13 @@ import { api } from "../api.js";
 import TopBar from "../components/TopBar.jsx";
 import Watermark from "../components/Watermark.jsx";
 
-const TYPE_LABEL = { link: "Link", pdf: "PDF", img: "Image", mp4: "Video", video: "Video" };
+const TYPE_LABEL = {
+  link: "🔮 Link",
+  pdf: "📜 PDF",
+  img: "👻 Image",
+  mp4: "🎬 Video",
+  video: "🎬 Video",
+};
 
 export default function ViewerSubsection() {
   const { sectionId, subsectionId } = useParams();
@@ -25,10 +31,6 @@ export default function ViewerSubsection() {
       .then((subsection) => active && setSubTitle(subsection.title))
       .catch((error) => console.error("Subsection load failed:", error));
 
-    // Poll at a reduced rate so scheduled items appear automatically without
-    // hammering the API (and downstream Blob CDN) every 10 s across many users.
-    // 60 s is still fast enough for the 1-minute publish test to surface within
-    // one poll cycle.
     const timer = window.setInterval(refreshItems, 60_000);
     return () => {
       active = false;
@@ -56,7 +58,7 @@ export default function ViewerSubsection() {
           items.map((it) => (
             <button key={it.id} className="menu-btn" onClick={() => openItem(it)}>
               {it.title}
-              <span className="menu-btn-tag">{TYPE_LABEL[it.type]}</span>
+              <span className="menu-btn-tag">{TYPE_LABEL[it.type] || "📁 Item"}</span>
             </button>
           ))
         )}

@@ -1,6 +1,7 @@
 import { lazy, Suspense, useState } from "react";
 import { Routes, Route, Link, useLocation } from "react-router-dom";
 import UpdateSignup from "./components/UpdateSignup.jsx";
+import HalloweenDecorations from "./components/HalloweenDecorations.jsx";
 import {
   normalizeUsername,
   USERNAME_STORAGE_KEY,
@@ -38,7 +39,12 @@ export default function App() {
   };
 
   if (needsUsername && !username) {
-    return <UsernameGate onSave={saveUsername} />;
+    return (
+      <div className="viewer-shell">
+        <HalloweenDecorations />
+        <UsernameGate onSave={saveUsername} />
+      </div>
+    );
   }
 
   return (
@@ -46,6 +52,7 @@ export default function App() {
       value={{ username, requestUsernameChange: () => setEditingUsername(true) }}
     >
       <div className="app">
+        {!isAdmin && !isUnsubscribe && <HalloweenDecorations />}
         <Suspense fallback={<PageLoading />}>
           <Routes>
             <Route path="/" element={<ViewerHome />} />

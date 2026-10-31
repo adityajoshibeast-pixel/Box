@@ -26,6 +26,7 @@ export default function ViewerSection() {
           subsections.map((ss) => (
             <Link key={ss.id} to={`/s/${sectionId}/ss/${ss.id}`} className="menu-btn">
               {ss.title}
+              <span className="menu-btn-tag">🕸️ View</span>
             </Link>
           ))
         )}

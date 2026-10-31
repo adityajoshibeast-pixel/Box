@@ -26,7 +26,10 @@ export default function TopBar({ title, backTo }) {
             &larr; Back
           </Link>
         )}
-        <h1 className="topbar-title">{title}</h1>
+        <h1 className="topbar-title">
+          <span className="pumpkin-icon" aria-hidden="true">🎃</span>
+          {title}
+        </h1>
       </div>
       <Link to="/admin" className="admin-link">
         Admin

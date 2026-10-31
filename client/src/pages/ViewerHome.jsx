@@ -23,6 +23,7 @@ export default function ViewerHome() {
           sections.map((s) => (
             <Link key={s.id} to={`/s/${s.id}`} className="menu-btn">
               {s.title}
+              <span className="menu-btn-tag">🎃 Explore</span>
             </Link>
           ))
         )}
