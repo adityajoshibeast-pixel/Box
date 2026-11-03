@@ -27,7 +27,7 @@ export default function TopBar({ title, backTo }) {
           </Link>
         )}
         <h1 className="topbar-title">
-          <span className="pumpkin-icon" aria-hidden="true">🎃</span>
+          <span className="diya-icon" aria-hidden="true">🪔</span>
           {title}
         </h1>
       </div>

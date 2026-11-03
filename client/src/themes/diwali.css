@@ -1,0 +1,397 @@
+/* Diwali night theme: warm lamps, royal blue sky, gold accents. */
+:root {
+  --bg: #090d25;
+  --panel: #12183a;
+  --border: rgba(255, 196, 83, 0.28);
+  --text: #fff5d6;
+  --muted: #c7c9e6;
+  --accent: #ffbd3d;
+  --accent-dark: #e27b18;
+  --danger: #ff8795;
+  --font-display: "Manrope", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
+}
+
+body {
+  min-width: 320px;
+  background:
+    radial-gradient(ellipse at 50% -12%, rgba(74, 63, 154, 0.72), transparent 46%),
+    radial-gradient(circle at 12% 26%, rgba(255, 144, 40, 0.12), transparent 23%),
+    linear-gradient(180deg, #11183e 0%, #0b102d 52%, #06091d 100%);
+  color: var(--text);
+}
+
+.viewer-shell.page {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: none;
+  min-height: 100vh;
+  margin: 0;
+  overflow: hidden;
+  padding: 24px clamp(16px, 4vw, 72px) 150px;
+  background: linear-gradient(180deg, rgba(13, 18, 53, 0.76), rgba(5, 8, 26, 0.9));
+}
+
+.viewer-shell.page > .topbar,
+.viewer-shell.page > .hero-copy,
+.viewer-shell.page > .button-grid {
+  width: min(1160px, 100%);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.viewer-shell .topbar {
+  position: relative;
+  z-index: 3;
+  margin: 0 auto 26px;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 202, 92, 0.3);
+  border-radius: 18px;
+  background: rgba(8, 12, 37, 0.78);
+  box-shadow: 0 15px 40px -25px #000, inset 0 1px rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
+}
+
+.viewer-shell .topbar-title {
+  color: #ffe29a;
+  font: 800 clamp(23px, 3.4vw, 36px)/1 var(--font-display);
+  letter-spacing: -0.035em;
+  text-shadow: 0 0 18px rgba(255, 190, 50, 0.34);
+}
+
+.diya-icon {
+  display: inline-block;
+  margin-right: 8px;
+  font-size: 0.82em;
+  filter: drop-shadow(0 0 9px rgba(255, 178, 45, 0.8));
+  animation: diya-warm 2.8s ease-in-out infinite;
+}
+
+@keyframes diya-warm {
+  0%, 100% { transform: rotate(-3deg) scale(1); }
+  50% { transform: rotate(3deg) scale(1.08); }
+}
+
+.viewer-shell .admin-link,
+.viewer-shell .back-link {
+  color: #ffe6a5;
+  border-color: rgba(255, 201, 85, 0.34);
+}
+
+.viewer-shell .admin-link:hover,
+.viewer-shell .back-link:hover {
+  color: #fff;
+  border-color: #ffc94f;
+}
+
+.hero-copy {
+  position: relative;
+  z-index: 2;
+  width: min(720px, 100%);
+  margin: clamp(35px, 8vh, 90px) auto 32px;
+  text-align: center;
+}
+
+.hero-kicker {
+  margin: 0 0 10px;
+  color: #ffd66b;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.hero-copy h2 {
+  margin: 0;
+  color: #fff8e8;
+  font: 800 clamp(36px, 6vw, 68px)/1.02 var(--font-display);
+  letter-spacing: -0.05em;
+  text-shadow: 0 4px 20px rgba(255, 191, 58, 0.22);
+}
+
+.hero-copy h2 span {
+  display: block;
+  color: #ffc94f;
+}
+
+.hero-copy > p:last-child {
+  max-width: 590px;
+  margin: 16px auto 0;
+  color: #d6dbf5;
+  font: 500 15px/1.7 var(--font-body);
+}
+
+.viewer-shell .button-grid {
+  position: relative;
+  z-index: 2;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.viewer-shell .menu-btn {
+  min-height: 72px;
+  justify-content: space-between;
+  padding: 17px 20px;
+  border: 1px solid rgba(255, 190, 54, 0.32);
+  border-radius: 14px;
+  background: linear-gradient(145deg, rgba(24, 32, 79, 0.97), rgba(13, 18, 49, 0.98));
+  color: #fff4d6;
+  box-shadow: 0 14px 28px -16px #000, inset 0 1px rgba(255, 255, 255, 0.08);
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.viewer-shell .menu-btn::before {
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #ffc84e, transparent);
+}
+
+.viewer-shell .menu-btn::after {
+  content: "✦";
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  color: #ffcf63;
+}
+
+.viewer-shell .menu-btn:hover,
+.viewer-shell .menu-btn:focus-visible {
+  border-color: #ffd66b;
+  box-shadow: 0 16px 30px -15px #000, 0 0 22px -10px rgba(255, 193, 56, 0.9);
+  transform: translateY(-3px);
+  outline: none;
+}
+
+.viewer-shell .menu-btn-tag {
+  color: #ffda7a;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+}
+
+.viewer-shell .username-chip {
+  border-color: rgba(255, 196, 83, 0.3);
+  background: rgba(8, 12, 37, 0.86);
+  color: #fff3ce;
+}
+
+.viewer-shell .username-avatar {
+  background: linear-gradient(135deg, #ffbd3d, #e36220);
+  color: #1a1030;
+}
+
+.viewer-shell .btn-primary {
+  border-color: #ffd268;
+  background: linear-gradient(135deg, #ffc83f, #e2761d);
+  color: #1a1230;
+  box-shadow: 0 7px 20px -6px rgba(255, 179, 35, 0.7);
+}
+
+.viewer-shell .pdf-frame,
+.viewer-shell .img-frame,
+.viewer-shell .video-frame {
+  border-color: rgba(255, 196, 83, 0.3);
+  background: rgba(9, 13, 37, 0.9);
+}
+
+.viewer-shell .watermark {
+  position: fixed !important;
+  left: auto !important;
+  right: 18px !important;
+  bottom: 16px !important;
+  z-index: 8;
+  width: max-content !important;
+  max-width: calc(100vw - 36px);
+  margin: 0 !important;
+  padding: 8px 11px;
+  border: 1px solid rgba(255, 201, 85, 0.28);
+  border-radius: 10px;
+  background: rgba(7, 10, 29, 0.88);
+  color: #ffdc7f;
+  text-align: right;
+  white-space: nowrap;
+  box-shadow: 0 8px 22px -8px #000, 0 0 14px -8px rgba(255, 189, 49, 0.8);
+}
+
+.watermark-name { color: #ffda7a; }
+.watermark-link { color: #bfc8ef; }
+
+.diwali-decorations {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.diwali-toran {
+  position: absolute;
+  top: 0;
+  left: 8%;
+  right: 8%;
+  display: flex;
+  justify-content: space-around;
+  color: #ffc94d;
+  font-size: 15px;
+  text-shadow: 0 0 10px #ff8d27;
+  opacity: 0.9;
+}
+
+.diwali-toran::after {
+  content: "";
+  position: absolute;
+  top: 5px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #ffbd3d 15%, #ffef9c 50%, #ffbd3d 85%, transparent);
+  box-shadow: 0 0 9px #ffb62f;
+}
+
+.diwali-firework {
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  opacity: 0.78;
+  animation: firework-pulse 3.4s ease-in-out infinite;
+}
+
+.firework-one { top: 17%; left: 8%; color: #ffcf61; }
+.firework-two { top: 24%; right: 10%; color: #f58bca; animation-delay: -1.2s; transform: scale(0.75); }
+.firework-three { top: 43%; left: 43%; color: #6ee4e0; animation-delay: -2.1s; transform: scale(0.5); }
+
+.diwali-firework i {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 3px;
+  height: 48px;
+  border-radius: 99px;
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;
+  transform-origin: 50% 0;
+}
+
+.diwali-firework i:nth-child(1) { transform: translate(-50%, 0) rotate(0deg); }
+.diwali-firework i:nth-child(2) { transform: translate(-50%, 0) rotate(60deg); }
+.diwali-firework i:nth-child(3) { transform: translate(-50%, 0) rotate(120deg); }
+.diwali-firework i:nth-child(4) { transform: translate(-50%, 0) rotate(180deg); }
+.diwali-firework i:nth-child(5) { transform: translate(-50%, 0) rotate(240deg); }
+.diwali-firework i:nth-child(6) { transform: translate(-50%, 0) rotate(300deg); }
+
+@keyframes firework-pulse {
+  0%, 100% { opacity: 0.25; transform: scale(0.78); }
+  50% { opacity: 0.9; transform: scale(1); }
+}
+
+.diwali-diya {
+  position: absolute;
+  bottom: 20px;
+  width: 74px;
+  height: 30px;
+  border-radius: 50% 50% 45% 45%;
+  background: linear-gradient(180deg, #ffcf5a, #bd571a);
+  box-shadow: 0 8px 22px rgba(255, 145, 22, 0.58), 0 0 34px rgba(255, 196, 64, 0.38);
+}
+
+.diya-left { left: 8%; }
+.diya-center { left: 50%; transform: translateX(-50%) scale(0.8); }
+.diya-right { right: 8%; transform: scale(0.9); }
+
+.diya-flame {
+  position: absolute;
+  left: 50%;
+  bottom: 21px;
+  width: 17px;
+  height: 27px;
+  border-radius: 50% 50% 50% 0;
+  background: #fff2a0;
+  box-shadow: 0 0 10px 4px #ffb52e, 0 0 28px 8px rgba(255, 142, 24, 0.65);
+  transform: translateX(-50%) rotate(-45deg);
+  animation: flame-flicker 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes flame-flicker {
+  to { transform: translateX(-50%) rotate(-40deg) scale(0.82); opacity: 0.8; }
+}
+
+.diwali-rangoli {
+  position: absolute;
+  left: 50%;
+  bottom: -62px;
+  width: 220px;
+  height: 110px;
+  border: 2px solid rgba(242, 112, 189, 0.46);
+  border-radius: 50%;
+  transform: translateX(-50%);
+  box-shadow: 0 0 0 14px rgba(255, 194, 73, 0.12), 0 0 0 28px rgba(103, 215, 211, 0.1), 0 0 30px rgba(255, 174, 62, 0.25);
+}
+
+.diwali-sparkles span {
+  position: absolute;
+  color: #ffe38a;
+  text-shadow: 0 0 9px #ff9e2d;
+  animation: sparkle-drift 4s ease-in-out infinite;
+}
+
+.diwali-sparkles span:nth-child(1) { top: 31%; left: 27%; }
+.diwali-sparkles span:nth-child(2) { top: 51%; left: 66%; animation-delay: -1.1s; }
+.diwali-sparkles span:nth-child(3) { top: 22%; left: 78%; animation-delay: -2.4s; }
+.diwali-sparkles span:nth-child(4) { top: 64%; left: 16%; animation-delay: -0.6s; }
+.diwali-sparkles span:nth-child(5) { top: 36%; left: 52%; animation-delay: -3s; }
+
+@keyframes sparkle-drift {
+  0%, 100% { opacity: 0.2; transform: translateY(0) scale(0.8); }
+  50% { opacity: 1; transform: translateY(-10px) scale(1.2); }
+}
+
+.username-gate {
+  background: radial-gradient(circle at 50% 16%, rgba(74, 63, 154, 0.75), transparent 42%), #080c25;
+}
+
+.username-card,
+.name-card,
+.login-card,
+.tree-node,
+.item-form,
+.unsubscribe-card {
+  border-color: rgba(255, 196, 83, 0.28);
+  background: rgba(10, 15, 42, 0.96);
+  color: #fff4d6;
+}
+
+.login-card input,
+.inline-form input,
+.item-form input,
+.item-form select,
+.schedule-select,
+.username-card input,
+.name-card input[type="text"] {
+  border-color: rgba(255, 196, 83, 0.28);
+  background: #080c25;
+  color: #fff4d6;
+}
+
+.update-signup.is-open,
+.update-signup-pill {
+  border-color: rgba(255, 196, 83, 0.28);
+  background: rgba(9, 13, 38, 0.94);
+  color: #fff0c8;
+}
+
+@media (max-width: 640px) {
+  .viewer-shell.page { padding: 14px 12px 120px; }
+  .hero-copy { margin-top: 42px; }
+  .hero-copy h2 span { display: block; }
+  .diwali-firework { transform: scale(0.65); }
+  .diya-left { left: 3%; }
+  .diya-right { right: 3%; }
+  .viewer-shell .watermark { right: 10px !important; bottom: 10px !important; max-width: calc(100vw - 20px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .diya-icon,
+  .diwali-firework,
+  .diya-flame,
+  .diwali-sparkles span { animation: none; }
+}

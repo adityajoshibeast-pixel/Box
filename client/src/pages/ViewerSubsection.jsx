@@ -5,9 +5,9 @@ import TopBar from "../components/TopBar.jsx";
 import Watermark from "../components/Watermark.jsx";
 
 const TYPE_LABEL = {
-  link: "🔮 Link",
+  link: "🔗 Link",
   pdf: "📜 PDF",
-  img: "👻 Image",
+  img: "🖼️ Image",
   mp4: "🎬 Video",
   video: "🎬 Video",
 };
