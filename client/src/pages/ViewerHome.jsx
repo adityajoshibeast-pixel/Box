@@ -17,7 +17,7 @@ export default function ViewerHome() {
       <section className="hero-copy" aria-labelledby="welcome-title">
         <p className="hero-kicker">A curious little corner of the night</p>
         <h2 id="welcome-title">Welcome to the <span>Resource Castle</span></h2>
-        <p>Follow the lanterns, choose a chapter, and discover something useful beneath the moon.</p>
+        <p>Follow the diyas, explore every chapter, and discover something bright this Diwali.</p>
       </section>
       <div className="button-grid">
         {sections === null ? (
