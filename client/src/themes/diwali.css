@@ -360,6 +360,77 @@ body {
   color: #fff4d6;
 }
 
+/* Admin is outside .viewer-shell, so give every admin surface its own dark
+   contrast rules instead of relying on the public viewer palette. */
+.admin-page {
+  width: 100%;
+  max-width: none;
+  min-height: 100vh;
+  margin: 0;
+  padding: 30px clamp(16px, 5vw, 80px) 80px;
+  background: linear-gradient(180deg, #101742 0%, #090d28 100%);
+  color: #fff4d6;
+}
+
+.admin-page .hint,
+.admin-page .tree-label,
+.admin-page .admin-header h1 {
+  color: #fff4d6;
+}
+
+.admin-page .tree-node,
+.admin-page .item-admin-card {
+  border-color: rgba(255, 196, 83, 0.28);
+  background: rgba(15, 22, 58, 0.94);
+  color: #fff4d6;
+  box-shadow: 0 12px 28px -20px #000;
+}
+
+.admin-page .tree-node-nested {
+  background: rgba(10, 15, 42, 0.94);
+}
+
+.admin-page .item-form {
+  background: rgba(7, 11, 35, 0.9);
+}
+
+.admin-page input,
+.admin-page select,
+.admin-page textarea {
+  border-color: rgba(255, 196, 83, 0.3);
+  background: #080c25;
+  color: #fff4d6;
+  color-scheme: dark;
+}
+
+.admin-page input::placeholder {
+  color: #aab3d6;
+}
+
+.admin-page .btn-ghost,
+.admin-page .icon-btn,
+.admin-page .visibility-switch {
+  border-color: rgba(255, 196, 83, 0.3);
+  background: rgba(12, 18, 49, 0.92);
+  color: #ffe7a9;
+}
+
+.admin-page .tree-toggle,
+.admin-page .item-meta-link,
+.admin-page .item-type-tag {
+  color: #c9d0ef;
+  border-color: rgba(255, 196, 83, 0.24);
+}
+
+.admin-page .tree-children {
+  border-color: rgba(255, 196, 83, 0.28);
+}
+
+.admin-page .schedule-select {
+  background: #080c25;
+  color: #fff4d6;
+}
+
 .login-card input,
 .inline-form input,
 .item-form input,
